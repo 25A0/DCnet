@@ -1,9 +1,10 @@
 package component;
 
-import dcp.server.DCpServer;
+import cli.CLI;
+import cli.ServerInterface;
 
 public class ServerMain {
 	public static void main(String... args) {
-		new DCpServer();
+		new CLI(new ServerInterface(), args);
 	}
 }

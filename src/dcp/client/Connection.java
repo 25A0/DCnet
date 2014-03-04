@@ -26,16 +26,7 @@ public class Connection {
 		is = s.getInputStream();
 		os = s.getOutputStream();
 	}
-	
-	/**
-	 * Debugging constructor
-	 * @param dc
-	 */
-	public Connection(DummyConnection dc) {
-		is = DummyConnection.SERVER.getInputStream();
-		os = DummyConnection.C1.getOutputStream();
-	}
-	
+		
 	public void send(DCpMessage m) throws IOException {
 		os.write(m.toByteArray());
 	}
