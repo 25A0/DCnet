@@ -4,3 +4,13 @@
 *.jar
 *.war
 *.ear
+/bin
+
+# Eclipse files
+*.project
+*.classpath
+
+
+# Sublime files
+*.sublime-project
+*.sublime-workspace
