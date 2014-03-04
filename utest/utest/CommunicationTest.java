@@ -7,8 +7,8 @@ import java.io.OutputStream;
 
 import org.junit.Test;
 
-import dcp.DCpMessage;
-import dcp.testing.DummyConnection;
+import dc.DCMessage;
+import dc.testing.DummyConnection;
 
 
 public class CommunicationTest {
@@ -17,7 +17,7 @@ public class CommunicationTest {
 	public void testMessages() {
 		String s = "testString";
 		byte[] bb = s.getBytes();
-		DCpMessage m = DCpMessage.getMessage(bb);
+		DCMessage m = DCMessage.getMessage(bb);
 		assertArrayEquals(bb, m.toByteArray());
 		
 	}

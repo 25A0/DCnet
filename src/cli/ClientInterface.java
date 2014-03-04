@@ -3,12 +3,12 @@ package cli;
 import java.io.IOException;
 import java.net.UnknownHostException;
 
-import dcp.client.DCpClient;
-import dcp.testing.DummyConnection;
+import dc.client.DCClient;
+import dc.testing.DummyConnection;
 
 public class ClientInterface extends CLC {
-	private DCpClient c;
-	private Action connect, send;
+	private DCClient c;
+	private Action connect, send, dummy;
 	
 	public ClientInterface() {		
 		//Define actions
@@ -18,7 +18,7 @@ public class ClientInterface extends CLC {
 				String host = "192.168.2.74";
 				int port = Integer.valueOf(args[0]);
 				try {
-					c = new DCpClient(host, port);
+					c = new DCClient(host, port);
 				} catch (UnknownHostException e) {
 					Debugger.println(1, e.toString());
 //					e.printStackTrace();
@@ -35,12 +35,20 @@ public class ClientInterface extends CLC {
 				if(c != null) {
 					try {
 						String s = args.length > 0? args[0]: "";
+						Debugger.println(2, "Trying to send message " + s);
 						c.send(s);
 					} catch (IOException e) {
 						Debugger.println(1, e.toString());
 					}
 				}
 			}
+		};
+		
+		dummy = new Action() {
+			@Override
+			public void execute(String... args) {
+				c = new DCClient(DummyConnection.C1);
+			};
 		};
 		
 		
@@ -50,6 +58,7 @@ public class ClientInterface extends CLC {
 	private void teachCommands() {
 		mapCommand("connect", connect);
 		mapCommand("send", send);
+		mapCommand("dummy", dummy);
 	}
 
 }

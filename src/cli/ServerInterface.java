@@ -1,12 +1,14 @@
 package cli;
 
-import dcp.server.DCpServer;
+import dc.server.DCServer;
 
 public class ServerInterface extends CLC {
-	private DCpServer s;
+	private DCServer s;
 	
 	public ServerInterface() {
-		s = new DCpServer();
+		s = new DCServer();
+		
+		
 	}
 
 }

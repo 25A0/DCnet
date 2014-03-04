@@ -1,4 +1,4 @@
-package dcp.testing;
+package dc.testing;
 
 import java.util.LinkedList;
 import java.io.IOException;
@@ -6,6 +6,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Queue;
 import java.util.concurrent.Semaphore;
+
+import cli.Debugger;
 
 /**
  * A connection mockup that uses InputStream and OutputStream to forward data
@@ -46,6 +48,7 @@ public class DummyConnection {
 
 		@Override
 		public void write(int b) throws IOException {
+			Debugger.println(2, "[DummyConnection] writing " + String.valueOf(b));
 			if(dataSemaphore.availablePermits() > QUEUE_BUFFER_LIMIT) {
 				throw new IOException("Buffer size limit reached!");
 			} else {
@@ -64,6 +67,7 @@ public class DummyConnection {
 		public int read() throws IOException {
 			dataSemaphore.acquireUninterruptibly();
 			synchronized(dataQueue) {
+				Debugger.println(2, "[DummyConnection] reading " + String.valueOf(dataQueue.peek()));
 				return dataQueue.poll();
 			}
 		}

@@ -1,17 +1,19 @@
-package dcp.server;
+package dc.server;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
 
 import cli.Debugger;
-import dcp.DCpMessage;
+import dc.DCMessage;
+import dc.testing.DummyConnection;
 
-public class DCpServer {
+public class DCServer {
 
-	public DCpServer() {
-		Debugger.println(1, "[DCpServer] Server started");
+	public DCServer() {
+		Debugger.println(1, "[DCServer] Server started");
 		
-		new Thread(new ConCollector()).start();
+//		new Thread(new ConCollector()).start();
+		new ConThread(new Connection(DummyConnection.C1));
 	}
 	
 	private class ConCollector implements Runnable {
@@ -20,7 +22,7 @@ public class DCpServer {
 			while(true) {
 				try {
 					Connection c = new Connection(port);
-					Debugger.print(1, "[DCpServer] Connection established on port " + port);
+					Debugger.print(1, "[DCServer] Connection established on port " + port);
 					new ConThread(c);
 					port++;
 				} catch (UnknownHostException e) {
@@ -44,10 +46,10 @@ public class DCpServer {
 		
 		public void run() {
 			while(true) {
-				DCpMessage m;
+				DCMessage m;
 				try {
 					m = c.receive();
-					Debugger.println(2, "[DCpServer] Received message " + m.toString());
+					Debugger.println(1, "[DCServer] Received message " + m.toString());
 					c.send(m);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block

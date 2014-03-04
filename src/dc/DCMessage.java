@@ -1,12 +1,12 @@
-package dcp;
+package dc;
 
 import java.math.BigInteger;
 import java.util.Arrays;
 
-public class DCpMessage {
+public class DCMessage {
 	private String s;
 	
-	public DCpMessage(String s) {
+	public DCMessage(String s) {
 		this.s = s;
 	}
 	
@@ -14,8 +14,8 @@ public class DCpMessage {
 		return s;
 	}
 	
-	public static DCpMessage getMessage(byte[] bb) {
-		return new DCpMessage(new String(bb));
+	public static DCMessage getMessage(byte[] bb) {
+		return new DCMessage(new String(bb));
 	}
 	
 	public byte[] toByteArray() {

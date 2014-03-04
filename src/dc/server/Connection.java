@@ -1,4 +1,4 @@
-package dcp.server;
+package dc.server;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -6,9 +6,11 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 
-import dcp.DCpMessage;
-import dcp.testing.DummyConnection;
+import cli.Debugger;
+import dc.DCMessage;
+import dc.testing.DummyConnection;
 
 public class Connection {
 	private ServerSocket ss;
@@ -30,14 +32,20 @@ public class Connection {
 		os = s.getOutputStream();
 	}
 	
-	public void send(DCpMessage m) throws IOException {
+	public Connection(DummyConnection dc) {
+		os = dc.getOutputStream();
+		is = DummyConnection.SERVER.getInputStream();
+	}
+	
+	public void send(DCMessage m) throws IOException {
 		os.write(m.toByteArray());
 	}
 	
-	public DCpMessage receive() throws IOException {
+	public DCMessage receive() throws IOException {
 		byte[] buffer = new byte[16];
 		is.read(buffer);
-		return DCpMessage.getMessage(buffer);
+		Debugger.println(2, "[Connection] reading " + Arrays.toString(buffer));
+		return DCMessage.getMessage(buffer);
 	}
 
 }
