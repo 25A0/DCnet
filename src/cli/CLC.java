@@ -11,7 +11,7 @@ import java.util.Map;
  */
 public abstract class CLC {
 	private Map<String, Action> commandMap;
-	private Action defaultAction;
+	private Action defaultAction, rootAction;
 	
 	/**
 	 * The action that will be executed in case that no
@@ -23,6 +23,17 @@ public abstract class CLC {
 			System.out.println("The command " + args.peek() + " is unknown.");
 		}
 	};
+
+	/**
+	 * The action that will be executed by default when calling the
+	 * root of this controller
+	 */
+	protected final Action defaultRootAction = new Action() {
+		@Override
+		public void execute(ArgSet args) {
+			System.out.println("Root action");
+		}
+	};
 	
 	/**
 	 * Initializes local fields
@@ -30,6 +41,7 @@ public abstract class CLC {
 	public CLC() {
 		commandMap = new HashMap<String, Action>();
 		defaultAction = unknownCommandAction;
+		rootAction = defaultRootAction;
 	}
 	
 	/**
@@ -63,9 +75,32 @@ public abstract class CLC {
 			defaultAction = a;
 			
 	}
+
+	/**
+	 * Changes the action that is executed when this controller is called without
+	 * any additional arguments.
+	 * @param a The action to be executed
+	 */
+	protected final void setRootAction(Action a) {
+		if(a == null) 
+			rootAction = defaultRootAction;
+		else 
+			rootAction = a;
+	}
 	
+	/**
+	 * Evaluates an ArgSet. Calls the rootAction if no arguments are passed, 
+	 * and calls the defaultAction if no command was triggered by the first 
+	 * argument.
+	 * 
+	 * @param args The set of arguments.
+	 */
 	public final void handle(ArgSet args) {
-		if(args.peek().isEmpty()) return;
+		if(args.peek().isEmpty()) {
+			// In this case no other arguments are given, so execute the root action
+			// of this comtroller
+			rootAction.execute(args);
+		}
 		else if(!commandMap.containsKey(args.peek())) {
 			// In this step ALL commands are forwarded to the default action
 			defaultAction.execute(args);
@@ -77,17 +112,6 @@ public abstract class CLC {
 		}
 	}
 	
-	// private final String[] tail(String... args) {
-	// 	if(args.length <= 1) return new String[]{};
-	// 	else {
-	// 		String[] sa = new String[args.length-1];
-	// 		for(int i = 0; i < args.length-1; i++) {
-	// 			sa[i] = args[i+1];
-	// 		}
-	// 		return sa;
-	// 	}
-	// }
-
 	/**
 	 * This function is called when the focus of the command line
 	 * control is forwarded to this controller.
