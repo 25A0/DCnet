@@ -6,9 +6,12 @@ public class ServerInterface extends CLC {
 	private DCServer s;
 	
 	public ServerInterface() {
-		s = new DCServer();
 		
-		
+	}
+
+	@Override
+	protected void onEntering() {
+		if(s == null) s = new DCServer();
 	}
 
 }

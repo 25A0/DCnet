@@ -1,6 +1,7 @@
 package cli;
 
 import java.util.HashMap;
+import java.util.InputMismatchException;
 import java.util.Map;
 
 /**
@@ -18,8 +19,8 @@ public abstract class CLC {
 	 */
 	protected final Action unknownCommandAction = new Action() {
 		@Override
-		public void execute(String... args) {
-			System.out.println("The command " + args[0] + " is unknown.");
+		public void execute(ArgSet args) {
+			System.out.println("The command " + args.peek() + " is unknown.");
 		}
 	};
 	
@@ -63,31 +64,42 @@ public abstract class CLC {
 			
 	}
 	
-	public final void handle(String... args) {
-		if(args.length == 0) return;
-		else if(!commandMap.containsKey(args[0])) {
+	public final void handle(ArgSet args) {
+		if(args.peek().isEmpty()) return;
+		else if(!commandMap.containsKey(args.peek())) {
 			// In this step ALL commands are forwarded to the default action
 			defaultAction.execute(args);
 		} else {
 			// In this case the first command is consumed and only 
 			// the remaining commands are forwarded
-			commandMap.get(args[0]).execute(tail(args));
+			String arg = args.pop();
+			commandMap.get(arg).execute(args);
 		}
 	}
 	
-	private final String[] tail(String... args) {
-		if(args.length <= 1) return new String[]{};
-		else {
-			String[] sa = new String[args.length-1];
-			for(int i = 0; i < args.length-1; i++) {
-				sa[i] = args[i+1];
-			}
-			return sa;
-		}
+	// private final String[] tail(String... args) {
+	// 	if(args.length <= 1) return new String[]{};
+	// 	else {
+	// 		String[] sa = new String[args.length-1];
+	// 		for(int i = 0; i < args.length-1; i++) {
+	// 			sa[i] = args[i+1];
+	// 		}
+	// 		return sa;
+	// 	}
+	// }
+
+	/**
+	 * This function is called when the focus of the command line
+	 * control is forwarded to this controller.
+	 *
+	 * It can be used to check conditions or initialize variables.
+	 */
+	protected void onEntering() {
+
 	}
-	
+
 	protected abstract class Action {
-		public abstract void execute(String... args);
+		public abstract void execute(ArgSet args);
 	}
 	
 	protected final class CommandAction extends Action {
@@ -95,7 +107,8 @@ public abstract class CLC {
 		public CommandAction(CLC clc) {
 			this.clc = clc;
 		}
-		public final void execute(String... args) {
+		public final void execute(ArgSet args) {
+			clc.onEntering();
 			clc.handle(args);
 		}
 	}

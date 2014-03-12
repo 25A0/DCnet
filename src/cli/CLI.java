@@ -10,19 +10,35 @@ import java.io.InputStreamReader;
  *
  */
 public class CLI {
+	/**
+	 * A reader that helps reading input from System.in
+	 */
 	private BufferedReader br;
+	/**
+	 * A local controller that handles some special commands like "exit"
+	 */
 	private CLC controller;
-	
+	/**
+	 * The inner controller that handles all other commands.
+	 */
 	private CLC innerController;
-	
+	/**
+	 * A boolean that determines whether the CLI should stop waiting for user input
+	 */
 	private boolean stopped = false;
 	
+	/**
+	 * Initialises a new Command Line Interface. This interface holds a controller
+	 * to handle commands.
+	 * @param controller The controller that handles user commands
+	 * @param args The list of arguments which are still to be evaluated
+	 */
 	public CLI(CLC controller, String... args) {
 		br = new BufferedReader(new InputStreamReader(System.in));
 		this.innerController = controller;
 		this.controller = new CLIController();
 		try {
-			this.controller.handle(args);
+			this.controller.handle(new ArgSet(args));
 			readLoop();
 			System.exit(0);
 		} catch (IOException e) {
@@ -31,11 +47,16 @@ public class CLI {
 		}
 	}
 	
+	/**
+	 * Read a line of input from the console and process it.
+	 * Checks if stopped is true. In this case the loop stops.
+	 * @throws IOException
+	 */
 	private void readLoop() throws IOException {
 		while(!stopped) {
 			String s = br.readLine();
 			// TODO split on complete whitespaces, not just spaces
-			controller.handle(s.split(" +"));
+			controller.handle(new ArgSet(s));
 		}
 	}
 	
@@ -49,21 +70,15 @@ public class CLI {
 		public CLIController() {
 			Action exitAction = new Action() {
 				@Override
-				public void execute(String... args) {
+				public void execute(ArgSet args) {
 					stopped = true;
 				}
 			};
 			Action debugAction = new Action() {
 				@Override
-				public void execute(String... args) {
-					if(args.length < 1) return;
-					else {
-						int i;
-						try{
-							i = Integer.valueOf(args[0]);
-							Debugger.setLevel(Integer.valueOf(i));
-						} catch(Exception e) {return;}
-					}
+				public void execute(ArgSet args) {
+					int i = args.fetchInteger();
+					Debugger.setLevel(i);
 				}
 			};
 			
