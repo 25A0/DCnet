@@ -31,7 +31,7 @@ public abstract class CLC {
 	protected final Action defaultRootAction = new Action() {
 		@Override
 		public void execute(ArgSet args) {
-			System.out.println("Root action");
+			//
 		}
 	};
 	
@@ -50,7 +50,7 @@ public abstract class CLC {
 	 * @param command The command that triggers the action
 	 * @param a The action that is executed when the given command occurs 
 	 */
-	protected final void mapCommand(String command, Action a) {
+	public final void mapCommand(String command, Action a) {
 		if(commandMap.containsKey(command)) 
 			System.err.println("[CLC] Command " + command + " has already been registered.");
 		else if(a == null) {
@@ -68,7 +68,7 @@ public abstract class CLC {
 	 * 
 	 * @param a The command that is meant to be executed. 
 	 */
-	protected final void setDefaultAction(Action a) {
+	public final void setDefaultAction(Action a) {
 		if(a == null) 
 			defaultAction = unknownCommandAction;
 		else
@@ -76,12 +76,12 @@ public abstract class CLC {
 			
 	}
 
-	/**
+	/**r
 	 * Changes the action that is executed when this controller is called without
 	 * any additional arguments.
 	 * @param a The action to be executed
 	 */
-	protected final void setRootAction(Action a) {
+	public final void setRootAction(Action a) {
 		if(a == null) 
 			rootAction = defaultRootAction;
 		else 

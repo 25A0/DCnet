@@ -1,41 +1,17 @@
 package cli;
 
-import java.util.HashMap;
-import java.util.Map;
 import dc.DC;
 
 public class MainInterface extends CLC {
-	private Map<String, ClientInterface> ciMap;
 	private ServerInterface si;
-	private Action list, forwardAction;
+	private MultiClientInterface mci;
+	private Action forwardAction;
 	public MainInterface() {
-		System.out.println("Welcome to the DCnet command line interface.\nVersion " + DC.VERSION);
-
-		ciMap = new HashMap<String, ClientInterface>();
-
-		forwardAction = new Action() {
-			@Override
-			public void execute(ArgSet args) {
-				String s = args.fetchString();
-				if(!ciMap.containsKey(s)) {
-					ciMap.put(s, new ClientInterface());
-				}
-				System.out.println("Forwarding to client " + s);
-				ciMap.get(s).handle(args);
-			}
-		};
-
+		System.out.println("DCnet command line interface, v" + DC.VERSION);
 		si = new ServerInterface();
+		mci = new MultiClientInterface();
 
-		list = new Action() {
-			@Override
-			public void execute(ArgSet args) {
-				System.out.println(ciMap.keySet());
-			}
-		};
-
-		mapCommand("client", forwardAction);
-		mapCommand("list", list);
+		mapCommand("client", new CommandAction(mci));
 		mapCommand("server", new CommandAction(si));
 	}
 
