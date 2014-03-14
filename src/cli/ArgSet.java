@@ -105,7 +105,7 @@ public class ArgSet {
 	 * @return      A string representation of the first argument
 	 * @throws 		InputMismatchException if there is no argument available
 	 */
-	protected String fetchString() throws InputMismatchException {
+	public String fetchString() throws InputMismatchException {
 		if(peek().isEmpty()) 
 			throw new InputMismatchException("There are no arguments to fetch from.");
 		else {
@@ -119,13 +119,79 @@ public class ArgSet {
 	 * @throws 		InputMismatchException if there is no argument available
 	 * @throws NumberFormatException if the cast to an Integer fails
 	 */
-	protected Integer fetchInteger() throws InputMismatchException, NumberFormatException {
+	public Integer fetchInteger() throws InputMismatchException, NumberFormatException {
 		if(peek().isEmpty()) 
-			throw new InputMismatchException("There are no arguments to fetch from.");
+			throw new InputMismatchException("There are no integer arguments to fetch from.");
 		else {
 			Integer i = Integer.valueOf(pop());
 			return i;
 		}
+	}
+	
+	public Character fetchAbbr() {
+		if(!hasAbbArg()) {
+			throw new InputMismatchException("There is no abbreviation at the head of ArgSet.");
+		} else {
+			String s = pop();
+			return s.charAt(1);
+		}
+	}
+	
+	public String fetchOption() {
+		if(!hasOptionArg()) {
+			throw new InputMismatchException("There is no option at the head of ArgSet.");
+		} else {
+			String s = pop();
+			return s.substring(2);
+		}
+	}
+
+	/**
+	 * Checks whether there is another argument available.
+	 * Be aware that this function returns true even if the first argument is numeric
+	 * or an option ("-r").
+	 * @return True if another argument is present, false otherwise.
+	 */
+	public boolean hasStringArg() {
+		return !peek().isEmpty();
+	}
+
+	/**
+	 * Checks whether there is a numeric argument at the head of the ArgSet.
+	 * It attempts to cast the first argument to an integer. If that fails, then
+	 * false is returned.
+	 * @return False if the ArgSet is empty or if the first argument can not be casted to an integer. True otherwise.
+	 */
+	public boolean hasIntArg() {
+		try{
+			String s = peek();
+			if(s.isEmpty()) {
+				return false;
+			} else {
+				Integer.valueOf(s);
+			}
+		} catch(NumberFormatException e) {
+			return false;
+		}
+		return true;
+	}
+
+	public boolean hasOptionArg() {
+		String s = peek();
+		if(s.isEmpty()) {
+			return false;
+		} else {
+			return s.length() > 3 && s.charAt(0) == '-' && s.charAt(1) == '-' && Character.isAlphabetic(s.charAt(2));
+		}
+	}
+
+	public boolean hasAbbArg() {
+		String s = peek();
+		if(s.isEmpty()) {
+			return false;
+		} else {
+			return s.length() == 2 && s.charAt(0) == '-' && Character.isAlphabetic(s.charAt(1));
+		} 
 	}
 
 }

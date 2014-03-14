@@ -85,7 +85,8 @@ public class CLI {
 			Action innerAction = new CommandAction(innerController);
 			
 			this.mapCommand("exit", exitAction);
-			this.mapCommand("-d", debugAction);
+			this.mapAbbreviation('d', debugAction);
+			this.mapOption("debug", debugAction);
 			this.setDefaultAction(innerAction);
 		}
 	}

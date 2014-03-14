@@ -31,7 +31,7 @@ public class MultiClientInterface extends CLC {
 
 		setRootAction(listAction);
 		setDefaultAction(forwardAction);
-		mapCommand("-l", listAction);
-		mapCommand("--list", listAction);
+		mapAbbreviation('l', listAction);
+		mapOption("list", listAction);
 	}
 }

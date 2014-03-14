@@ -11,6 +11,8 @@ import java.util.Map;
  */
 public abstract class CLC {
 	private Map<String, Action> commandMap;
+	private Map<Character, Action> abbrMap;
+	private Map<String, Action> optionMap;
 	private Action defaultAction, rootAction;
 	
 	/**
@@ -40,6 +42,8 @@ public abstract class CLC {
 	 */
 	public CLC() {
 		commandMap = new HashMap<String, Action>();
+		abbrMap = new HashMap<Character, Action>();
+		optionMap = new HashMap<String, Action>();
 		defaultAction = unknownCommandAction;
 		rootAction = defaultRootAction;
 	}
@@ -55,9 +59,30 @@ public abstract class CLC {
 			System.err.println("[CLC] Command " + command + " has already been registered.");
 		else if(a == null) {
 			System.err.println("[CLC] Command " + command + " can not be linked to a null Action.");
-		}
-		else {
+		} else {
 			commandMap.put(command, a);
+		}
+	}
+
+	public final void mapAbbreviation(Character abbr, Action a) {
+		if(abbrMap.containsKey(abbr)) {
+			System.err.println("[CLC] The abbreviation -" + abbr + " has already been registered.");
+		} else if(!Character.isAlphabetic(abbr)) {
+			System.err.println("[CLC] The abbreviation -" + abbr + " is not alphabetic.");
+		} else if(a == null) {
+			System.err.println("[CLC] The abbreviation -" + abbr + " can not be linked to a null Action.");
+		} else {
+			abbrMap.put(abbr, a);
+		}
+	}
+
+	public final void mapOption(String option, Action a) {
+		if(optionMap.containsKey(option)) {
+			System.err.println("[CLC] The option --" + option + " has already been registered.");
+		} else if(a == null) {
+			System.err.println("[CLC] The option --" + option + " can not be linked to a null Action.");
+		} else {
+			optionMap.put(option, a);
 		}
 	}
 	
@@ -100,15 +125,27 @@ public abstract class CLC {
 			// In this case no other arguments are given, so execute the root action
 			// of this comtroller
 			rootAction.execute(args);
-		}
-		else if(!commandMap.containsKey(args.peek())) {
-			// In this step ALL commands are forwarded to the default action
-			defaultAction.execute(args);
-		} else {
-			// In this case the first command is consumed and only 
-			// the remaining commands are forwarded
-			String arg = args.pop();
-			commandMap.get(arg).execute(args);
+		} else if(args.hasAbbArg()) {
+			Character c = args.peek().charAt(1);
+			if(abbrMap.containsKey(c)) {
+				abbrMap.get(args.fetchAbbr()).execute(args);
+			} else {
+				defaultAction.execute(args);
+			}
+		} else if(args.hasOptionArg()) {
+			String s = args.peek().substring(2);
+			if(optionMap.containsKey(s)) {
+				optionMap.get(args.fetchOption()).execute(args);
+			} else {
+				defaultAction.execute(args);
+			}
+		} else if(args.hasStringArg()) {
+			String s = args.peek();
+			if(commandMap.containsKey(s)) {
+				commandMap.get(args.fetchString()).execute(args);
+			} else {
+				defaultAction.execute(args);
+			}
 		}
 	}
 	
