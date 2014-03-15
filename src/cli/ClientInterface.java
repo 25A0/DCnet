@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import dc.client.DCClient;
+import dc.server.DCServer;
 import dc.testing.DummyConnection;
 
 public class ClientInterface extends CLC {
@@ -53,29 +54,18 @@ public class ClientInterface extends CLC {
 			}
 		};
 		
-//		dummy = new Action() {
-//			@Override
-//			public void execute(ArgSet args) {
-//				if(args.length > 0) {
-//					try {
-//						int i = Integer.valueOf(args[0]);
-//						switch(i) {
-//							case 1: 
-//								c = new DCClient(DummyConnection.C1);
-//								break;
-//							case 2:
-//								c = new DCClient(DummyConnection.C2);
-//								break;
-//							default:
-//								c = new DCClient(DummyConnection.C3);
-//								break;
-//						}
-//					} catch (NumberFormatException e) {
-//						System.err.println("Enter a number in the range [1..3]");
-//					}
-//				}
-//			};
-//		};	
+		dummy = new Action() {
+			@Override
+			public void execute(ArgSet args) {
+				try {
+					DummyConnection dc = new DummyConnection();
+					c = new DCClient(dc);
+					DCServer.getServer().connect(dc);
+				} catch(IOException e) {
+					System.err.println("[ClientInterface] Establishing a connection to the server failed.");
+				}
+			}
+		};	
 		
 		teachCommands();
 	}
@@ -83,7 +73,7 @@ public class ClientInterface extends CLC {
 	private void teachCommands() {
 		mapCommand("create", create);
 		mapCommand("send", send);
-//		mapCommand("dummy", dummy);
+		mapCommand("dummy", dummy);
 	}
 	
 	protected void onEntering() {
