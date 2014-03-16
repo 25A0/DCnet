@@ -1,18 +1,18 @@
-package cli;
+package component;
 
-import dc.DC;
+import dc.DCConfig;
 import cli.CLC;
 import dc.cli.MultiStationInterface;
 
 public class MainInterface extends CLC {
-	private MultiStationInterface mci;
-	private Action forwardAction;
+	private MultiStationInterface msi;
+	
 	public MainInterface() {
-		System.out.println("DCnet command line interface, v" + DC.VERSION);
-		mci = new MultiStationInterface();
+		System.out.println("DCnet command line interface, v" + DCConfig.VERSION);
+		msi = new MultiStationInterface();
 
-		mapCommand("client", new CommandAction(mci));
-		mapCommand("server", new CommandAction(si));
+		mapCommand("station", new CommandAction(msi));
+		
 	}
 
 }

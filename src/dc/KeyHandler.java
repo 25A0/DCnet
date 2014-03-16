@@ -1,28 +1,28 @@
-package dc.client;
+package dc;
 
 import java.util.Arrays;
 import java.util.HashMap;
 
-import dc.DCMessage;
+import dc.DCPackage;
 
 public class KeyHandler {
-	public static final int KEY_SIZE = DCMessage.PAYLOAD_SIZE;
+	public static final int KEY_SIZE = DCPackage.PAYLOAD_SIZE;
 	
-	private HashMap<String, byte[]> keys;
+	private HashMap<Connection, byte[]> keys;
 	private byte[] currentKeyMix;
 	
 	public KeyHandler() {
-		keys = new HashMap<String, byte[]>();
+		keys = new HashMap<Connection, byte[]>();
 		currentKeyMix = new byte[KEY_SIZE];
 		Arrays.fill(currentKeyMix, (byte) 0);
 	}
 	
-	public void addKey(String identifier, byte[] key) {
+	public void addKey(Connection c, byte[] key) {
 		if(key.length != KEY_SIZE) {
 			System.err.println("[KeyHandler] Severe: The provided key has length " + key.length + " but it has to be of length " + KEY_SIZE + ".");
 		} else {
 			synchronized(keys) {
-				keys.put(identifier, key);
+				keys.put(c, key);
 				
 				synchronized(currentKeyMix) {
 					for(int i = 0; i < KEY_SIZE; i++) {
@@ -33,9 +33,9 @@ public class KeyHandler {
 		}
 	}
 	
-	public void removeKey(String identifier) {
+	public void removeKey(Connection c) {
 		synchronized(keys) {
-			byte[] oldKey = keys.remove(identifier);
+			byte[] oldKey = keys.remove(c);
 			
 			synchronized(currentKeyMix) {
 				for(int i = 0; i < KEY_SIZE; i++) {
@@ -45,7 +45,11 @@ public class KeyHandler {
 		}
 	}
 	
-	public byte[] toOutput(byte[] message) {
+	public byte[] getOutput() {
+		return currentKeyMix;		
+	}
+	
+	public byte[] getOutput(byte[] message) {
 		byte[] output = new byte[message.length];
 		synchronized(currentKeyMix) {
 			for(int i = 0; i < message.length; i++) {

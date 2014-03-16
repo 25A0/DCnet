@@ -1,48 +1,33 @@
-package dc.client;
+package dc;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.Socket;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.concurrent.Semaphore;
 
 import cli.Debugger;
-import dc.Connection;
-import dc.DCMessage;
-import dc.testing.DummyConnection;
 
 public class DCStation {
-	private final Connection c;
-	private final KeyHandler kh;
 	private final LinkedList<String> pendingData;
 	private Semaphore pendingDataSemaphore;
+	private ConnectionBundle cb;
 
 	private boolean isClosed = false;
 	
-	public DCStation(ClientConnection c) {
+	public DCStation() {
 		Debugger.println(2, "[DCStation] Client started");
-		this.c = c;
-		kh = new KeyHandler();
+		cb = new ConnectionBundle();
 		pendingData = new LinkedList<String>();
 		pendingDataSemaphore = new Semaphore(0);
+		
+		(new Thread(new ProtocolCore())).start();
 	}
 	
-	public DCStation(String host, int port) throws UnknownHostException, IOException {
-		this(new ClientConnection(new Socket(host, port)));
-	}
-	
-	public DCStation(DummyConnection dc) throws IOException {
-		this(new ClientConnection(dc));
-	}
-
 	public void close() {
 		isClosed = true;
 	}
 	
-	public KeyHandler getKeyHandler() {
-		return kh;
+	public ConnectionBundle getConnectionBundle() {
+		return cb;
 	}
 	
 	public void send(String s) throws IOException {
@@ -56,8 +41,10 @@ public class DCStation {
 		public void run() {
 			while(!isClosed) {
 				try{
-					sleep(1000);
-				} catch(InterruptException e) {
+					Thread.sleep(1000);
+					pendingDataSemaphore.acquireUninterruptibly();
+					
+				} catch(InterruptedException e) {
 					System.err.println("[DCStation] Unable to complete sleep. Proceeding...");
 				}
 

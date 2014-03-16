@@ -3,12 +3,12 @@ package dc;
 import java.math.BigInteger;
 import java.util.Arrays;
 
-public class DCMessage {
+public class DCPackage {
 	private byte[] payload;
 
 	public static final int PAYLOAD_SIZE = 16;
 	
-	public DCMessage(byte[] payload) {
+	public DCPackage(byte[] payload) {
 		if(payload.length > PAYLOAD_SIZE) {
 			System.err.println("[DCMessage] Severe: Rejecting input " + 
 				String.valueOf(payload) + " since it is too much for a single message.");
@@ -29,14 +29,14 @@ public class DCMessage {
 	 * @return A list of messages, in such a way that concatenating the messages as they 
 	 * appear in the array will give you the original string.
 	 */
-	public static DCMessage[] getMessages(String s) {
+	public static DCPackage[] getMessages(String s) {
 		int numMessages = s.length() / PAYLOAD_SIZE + 1;
-		DCMessage[] messages = new DCMessage[numMessages];
+		DCPackage[] messages = new DCPackage[numMessages];
 		for(int i = 0; i < numMessages; i++) {
 			int start = i*PAYLOAD_SIZE;
 			int end = Math.min(s.length(), start + PAYLOAD_SIZE - 1);
 			byte[] bytes = s.substring(start, end).getBytes();
-			messages[i] = new DCMessage(bytes);
+			messages[i] = new DCPackage(bytes);
 		}
 		return messages;
 	}
