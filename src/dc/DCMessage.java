@@ -4,23 +4,45 @@ import java.math.BigInteger;
 import java.util.Arrays;
 
 public class DCMessage {
-	private String s;
+	private byte[] payload;
+
+	public static final int PAYLOAD_SIZE = 16;
 	
-	public DCMessage(String s) {
-		this.s = s;
+	public DCMessage(byte[] payload) {
+		if(payload.length > PAYLOAD_SIZE) {
+			System.err.println("[DCMessage] Severe: Rejecting input " + 
+				String.valueOf(payload) + " since it is too much for a single message.");
+		} else {
+			this.payload = payload;
+		}
 	}
 	
 	public String toString() {
-		return s;
+		return String.valueOf(payload);
 	}
 	
-	public static DCMessage getMessage(byte[] bb) {
-		return new DCMessage(new String(bb));
+	/**
+	 * Transforms a String into a set of messages. The string is subdivided into as little 
+	 * messages as possible, so that only the last message might not fill out the maximum
+	 * payload.
+	 *
+	 * @return A list of messages, in such a way that concatenating the messages as they 
+	 * appear in the array will give you the original string.
+	 */
+	public static DCMessage[] getMessages(String s) {
+		int numMessages = s.length() / PAYLOAD_SIZE + 1;
+		DCMessage[] messages = new DCMessage[numMessages];
+		for(int i = 0; i < numMessages; i++) {
+			int start = i*PAYLOAD_SIZE;
+			int end = Math.min(s.length(), start + PAYLOAD_SIZE - 1);
+			byte[] bytes = s.substring(start, end).getBytes();
+			messages[i] = new DCMessage(bytes);
+		}
+		return messages;
 	}
 	
 	public byte[] toByteArray() {
-		// TODO enforce to use same charset on all machines?
-		return this.toString().getBytes();
+		return payload;
 	}
 
 }

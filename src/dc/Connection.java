@@ -8,6 +8,8 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 
+import com.sun.xml.internal.ws.message.ByteArrayAttachment;
+
 import cli.Debugger;
 import dc.DCMessage;
 import dc.testing.DummyConnection;
@@ -21,16 +23,30 @@ public class Connection {
 		this.os = os;
 	}
 
-	protected void send(DCMessage m) throws IOException {
+	public void send(DCMessage m) throws IOException {
 		os.write(m.toByteArray());
 	}
 	
-	protected DCMessage receive() throws IOException {
-//		byte[] buffer = new byte[16];
-//		is.read(buffer);
-		char c = (char) is.read();
-		Debugger.println(2, "[Connection] reading " + c);
-		return DCMessage.getMessage(String.valueOf(c).getBytes());
+	public DCMessage receiveMessage() throws IOException {
+		byte[] buffer = new byte[DCMessage.PAYLOAD_SIZE];
+		for(int i = 0; i < DCMessage.PAYLOAD_SIZE; i++) {
+			buffer[i] = (byte) is.read();
+		}
+		
+		String s = Arrays.toString(buffer);
+		Debugger.println(2, "[Connection] reading " + s);
+		return DCMessage.getMessages(s)[0];
+	}
+
+	public DCOutput receiveOutput(int payload) {
+		byte[] buffer = new byte[DCMessage.PAYLOAD_SIZE];
+		for(int i = 0; i < DCMessage.PAYLOAD_SIZE; i++) {
+			buffer[i] = (byte) is.read();
+		}
+		
+		String s = Arrays.toString(buffer);
+		Debugger.println(2, "[Connection] reading " + s);
+		return DCMessage.getMessages(s)[0];	
 	}
 
 }

@@ -6,15 +6,14 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 
-import dc.client.DCClient;
-import dc.server.DCServer;
+import dc.DCStation;
 import dc.testing.DummyConnection;
 
-public class ClientInterface extends CLC {
-	private DCClient c;
+public class StationInterface extends CLC {
+	private DCStation c;
 	private Action create, send, dummy;
 	
-	public ClientInterface() {		
+	public StationInterface() {		
 		
 
 		//Define actions
@@ -26,7 +25,7 @@ public class ClientInterface extends CLC {
 					int port = args.fetchInteger();
 					if(port < 0 || port >= 65536) 
 						throw new IllegalArgumentException("The provided port has to be in bounds [0..65536]");
-					DCClient c = new DCClient(host, port);
+					DCStation c = new DCStation(host, port);
 				} catch (UnknownHostException e) {
 					Debugger.println(1, e.toString());
 //					e.printStackTrace();
@@ -59,10 +58,10 @@ public class ClientInterface extends CLC {
 			public void execute(ArgSet args) {
 				try {
 					DummyConnection dc = new DummyConnection();
-					c = new DCClient(dc);
+					c = new DCStation(dc);
 					DCServer.getServer().connect(dc);
 				} catch(IOException e) {
-					System.err.println("[ClientInterface] Establishing a connection to the server failed.");
+					System.err.println("[StationInterface] Establishing a connection to the server failed.");
 				}
 			}
 		};	

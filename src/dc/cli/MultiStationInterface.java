@@ -4,12 +4,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class MultiClientInterface extends CLC {
-	private Map<String, ClientInterface> ciMap;
+public class MultiStationInterface extends CLC {
+	private Map<String, StationInterface> ciMap;
 	private Action listAction, forwardAction;
 
-	public MultiClientInterface() {
-		ciMap = new HashMap<String, ClientInterface>();
+	public MultiStationInterface() {
+		ciMap = new HashMap<String, StationInterface>();
 
 		listAction = new Action() {
 			@Override
@@ -23,7 +23,7 @@ public class MultiClientInterface extends CLC {
 			public void execute(ArgSet args) {
 				String s = args.fetchString();
 				if(!ciMap.containsKey(s)) {
-						ciMap.put(s, new ClientInterface());
+						ciMap.put(s, new StationInterface());
 					}
 				ciMap.get(s).handle(args);
 			}
