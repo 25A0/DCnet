@@ -8,8 +8,6 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 
-import com.sun.xml.internal.ws.message.ByteArrayAttachment;
-
 import cli.Debugger;
 import dc.DCPackage;
 import dc.testing.DummyConnection;

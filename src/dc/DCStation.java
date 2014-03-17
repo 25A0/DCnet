@@ -14,7 +14,7 @@ public class DCStation {
 	private boolean isClosed = false;
 	
 	public DCStation() {
-		Debugger.println(2, "[DCStation] Client started");
+		Debugger.println(2, "[DCStation] Station started");
 		cb = new ConnectionBundle();
 		pendingData = new LinkedList<String>();
 		pendingDataSemaphore = new Semaphore(0);
