@@ -19,20 +19,21 @@ public class DCStation {
 		pendingData = new LinkedList<String>();
 		pendingDataSemaphore = new Semaphore(0);
 		
-		(new Thread(new ProtocolCore())).start();
+		// (new Thread(new ProtocolCore())).start();
 	}
 	
 	public void close() {
 		isClosed = true;
 	}
 	
-	public ConnectionBundle getConnectionBundle() {
+	public ConnectionBundle getCB() {
 		return cb;
 	}
 	
 	public void send(String s) throws IOException {
-		pendingData.add(s);
-		pendingDataSemaphore.release();
+		// pendingData.add(s);
+		// pendingDataSemaphore.release();
+		cb.broadcast(DCPackage.getMessages(s)[0]);
 	}
 	
 	private class ProtocolCore implements Runnable {

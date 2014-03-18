@@ -46,7 +46,7 @@ public class MultiStationInterface extends CLC {
 	private class StationInterface extends CLC {
 		private DCStation s;
 				
-		private Action send, close, create, connect;
+		private Action send, close, create, connect, read;
 		
 		public StationInterface() {		
 			s = new DCStation();
@@ -69,8 +69,8 @@ public class MultiStationInterface extends CLC {
 							DummyConnection dc = new DummyConnection();
 							Connection c1 = new Connection(dc.chA.getInputStream(), dc.chB.getOutputStream());
 							Connection c2 = new Connection(dc.chB.getInputStream(), dc.chA.getOutputStream());
-							s.getConnectionBundle().addConnection(c1, key);
-							l.getConnectionBundle().addConnection(c2, key);
+							s.getCB().addConnection(c1, key);
+							l.getCB().addConnection(c2, key);
 						}
 					}
 				}
@@ -101,16 +101,42 @@ public class MultiStationInterface extends CLC {
 				@Override
 				public void execute(ArgSet args) {
 					if(s != null) {
-						try {
-							String m = args.fetchString();
-							Debugger.println(2, "Trying to send message " + m);
-							s.send(m);
-						} catch (IOException e) {
-							Debugger.println(1, e.toString());
+						if(args.hasAbbArg() && args.fetchAbbr().equals('s') || args.hasOptionArg() && args.fetchOption().equals("silence")) {
+							s.getCB().broadcast();
+						} else {
+							try {
+								String m = args.fetchString();
+								Debugger.println(2, "Trying to send message " + m);
+								s.send(m);
+							} catch (IOException e) {
+								Debugger.println(1, e.toString());
+							}
+						}
+					} else {
+						System.out.println("[StationInterface] Use \"station <alias> create\" to create a station first.");
+					}
+				}
+			};
+
+			read = new Action() {
+				@Override
+				public void execute(ArgSet args) {
+					if(!s.getCB().canReceive()) {
+						System.out.println("[StationInterface] This station does currently not have any output.");
+					} else {
+						int i = 1;
+						while(s.getCB().canReceive()) {
+							byte[] output = s.getCB().receive();
+							StringBuilder sb = new StringBuilder();
+							for(int k = 0; k < output.length; k++) {
+								sb.append((char) output[k]);
+							}
+							System.out.println(i + ": " + sb.toString());
+							i++;
 						}
 					}
 				}
-			};	
+			};
 			
 			teachCommands();
 		}
@@ -120,6 +146,7 @@ public class MultiStationInterface extends CLC {
 			mapCommand("create", create);
 			mapCommand("connect", connect);
 			mapCommand("send", send);
+			mapCommand("read", read);
 		}
 		
 		protected void onEntering() {

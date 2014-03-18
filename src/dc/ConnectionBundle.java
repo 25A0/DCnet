@@ -1,9 +1,14 @@
 package dc;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.Semaphore;
+
 import cli.Debugger;
+import dc.DCPackage;
+
 import java.util.Arrays;
+import java.util.InputMismatchException;
 import java.util.LinkedList;
 
 public class ConnectionBundle {
@@ -51,6 +56,8 @@ public class ConnectionBundle {
 
 		outputBuffer = new LinkedList<byte[]>();
 
+		currentOutput = new byte[DCPackage.PAYLOAD_SIZE];
+
 		connections = 0;
 		remaining = 0;
 	}
@@ -58,10 +65,12 @@ public class ConnectionBundle {
 	public void addConnection(Connection c, byte[] key) {
 		Debugger.println(2, "[ConnectionBundle] New connection to " + c.toString() + " with key " + Arrays.toString(key));
 		accessSemaphore.acquireUninterruptibly();
-		chl.add(new ConnectionHandler(c));
+		ConnectionHandler ch = new ConnectionHandler(c);
+		chl.add(ch);
 		kh.addKey(c, key);
 		connections++;
 		connectionSemaphore.release();
+		(new Thread(ch)).start();
 		accessSemaphore.release();
 	}
 	
@@ -69,15 +78,26 @@ public class ConnectionBundle {
 		accessSemaphore.acquireUninterruptibly();
 		connectionSemaphore.acquireUninterruptibly();
 		connections--;
-		cc.remove(c);
+		chl.remove(c);
 		kh.removeKey(c);
 		accessSemaphore.release();
 	}
+
+	public void broadcast() {
+		byte[] bb = new byte[DCPackage.PAYLOAD_SIZE];
+		DCPackage emptyPackage = new DCPackage(bb);
+		broadcast(emptyPackage);
+	}
 	
 	public void broadcast(DCPackage m) {
+		// TODO: this is a possible deadlock since it is not
+		// possible to add any connections once the
+		// accessSemaphore has been acquired...
 		accessSemaphore.acquireUninterruptibly();
 		/**
-		 *  Make sure that there are enough connections
+		 *  Make sure that there are enough connections. This prevents stations
+		 *  from broadcasting messages once the number of connections drops below
+		 *  the minimum.
 		 */
 		connectionSemaphore.acquireUninterruptibly();
 		connectionSemaphore.release();
@@ -86,9 +106,14 @@ public class ConnectionBundle {
 		DCPackage o = new DCPackage(output);
 
 		for(ConnectionHandler ch: chl) {
-			ch.c.send(output);
+			try{
+				ch.c.send(output);
+				
+			} catch (IOException e) {
+				Debugger.println(1, e.getMessage());
+			}
 		}
-		reset(output);
+		addOutput(output);
 		
 		accessSemaphore.release();
 	}
@@ -103,15 +128,19 @@ public class ConnectionBundle {
 		}
 	}
 	
-	public byte[] receive(int payload) {
+	public byte[] receive() {
 		outputAvailable.acquireUninterruptibly();
 		return outputBuffer.pop();
 	}
 
-	private void reset(byte[] output) {
+	private void reset() {
 		synchronized(currentOutput) {
-			currentOutput = output;
-			remaining = connections;
+			currentOutput = new byte[DCPackage.PAYLOAD_SIZE];
+
+			// We need to read connections + 1 messages before this round is complete
+			// That is: we have to receive a message from each station that we're connected
+			// to, but we also need our own output.
+			remaining = connections + 1;
 		}
 	}
 
@@ -126,9 +155,8 @@ public class ConnectionBundle {
 				remaining--;
 				if(remaining == 0) {
 					outputBuffer.add(currentOutput);
-					currentOutput = new byte[DCPackage.PAYLOAD_LENGTH];
 					outputAvailable.release();
-					reset(currentOutput);
+					reset();
 				}
 			}
 		}
@@ -149,9 +177,15 @@ public class ConnectionBundle {
 		@Override
 		public void run() {
 			while(!isClosed) {
-				byte[] output = new byte[DCPackage.PAYLOAD_LENGTH];
-				for(int i = 0; i < output.length; i++) {
+				byte[] output = new byte[DCPackage.PAYLOAD_SIZE];
+				// for(int i = 0; i < output.length; i++) {
 					
+				// }
+				try {
+					output = c.receiveMessage();
+					addOutput(output);
+				} catch (IOException e) {
+					Debugger.println(1, e.getMessage());
 				}
 			}
 		}

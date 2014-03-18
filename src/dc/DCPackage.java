@@ -34,7 +34,7 @@ public class DCPackage {
 		DCPackage[] messages = new DCPackage[numMessages];
 		for(int i = 0; i < numMessages; i++) {
 			int start = i*PAYLOAD_SIZE;
-			int end = Math.min(s.length(), start + PAYLOAD_SIZE - 1);
+			int end = Math.min(s.length(), start + PAYLOAD_SIZE);
 			byte[] bytes = s.substring(start, end).getBytes();
 			messages[i] = new DCPackage(bytes);
 		}
