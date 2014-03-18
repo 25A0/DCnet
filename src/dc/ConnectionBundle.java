@@ -59,7 +59,7 @@ public class ConnectionBundle {
 		currentOutput = new byte[DCPackage.PAYLOAD_SIZE];
 
 		connections = 0;
-		remaining = 0;
+		remaining = 1;
 	}
 	
 	public void addConnection(Connection c, byte[] key) {
@@ -69,6 +69,7 @@ public class ConnectionBundle {
 		chl.add(ch);
 		kh.addKey(c, key);
 		connections++;
+		remaining++;
 		connectionSemaphore.release();
 		(new Thread(ch)).start();
 		accessSemaphore.release();
@@ -78,6 +79,7 @@ public class ConnectionBundle {
 		accessSemaphore.acquireUninterruptibly();
 		connectionSemaphore.acquireUninterruptibly();
 		connections--;
+		remaining--;
 		chl.remove(c);
 		kh.removeKey(c);
 		accessSemaphore.release();
@@ -153,6 +155,7 @@ public class ConnectionBundle {
 					currentOutput[i] ^= output[i];
 				}
 				remaining--;
+				Debugger.println(2, "[ConnectionBundle] Remaining messages: " + remaining);
 				if(remaining == 0) {
 					outputBuffer.add(currentOutput);
 					outputAvailable.release();

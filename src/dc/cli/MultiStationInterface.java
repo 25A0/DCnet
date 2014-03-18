@@ -9,12 +9,13 @@ import cli.CLC;
 import cli.Debugger;
 import dc.Connection;
 import dc.DCStation;
+import dc.KeyHandler;
 import dc.testing.DummyConnection;
 
 
 public class MultiStationInterface extends CLC {
 	private Map<String, StationInterface> ciMap;
-	private Action listAction, forwardAction;
+	private Action listAction, forwardAction, connect, create;
 
 	public MultiStationInterface() {
 		ciMap = new HashMap<String, StationInterface>();
@@ -31,9 +32,52 @@ public class MultiStationInterface extends CLC {
 			public void execute(ArgSet args) {
 				String s = args.fetchString();
 				if(!ciMap.containsKey(s)) {
-						ciMap.put(s, new StationInterface());
-					}
+					createStation(s);
+				}
 				ciMap.get(s).handle(args);
+			}
+		};
+
+		connect = new Action() {
+			@Override
+			public void execute(ArgSet args) {
+				DCStation s1, s2;
+				while(args.hasStringArg()) {
+					s1 = getStation(args);
+					s2 = getStation(args);
+					if(s1 == null || s2 == null || s1 == s2) {
+						System.err.println("[MultiStationInterface] Please provide two different stations");
+					} else {
+						byte[] key;
+						if(args.hasAbbArg() && args.fetchAbbr().equals('k') || args.hasOptionArg() && args.fetchOption().equals("key")) {
+							if(!args.hasStringArg()) {
+								System.err.println("[StationInterface] No key has been provided although option \"key\" was set.");
+								return;
+							} else {
+								key = args.fetchString().getBytes();
+							}
+						} else {
+							key = new byte[KeyHandler.KEY_SIZE];
+							for(int i = 0; i < KeyHandler.KEY_SIZE; i++) {
+								key[i] = (byte) (Math.random()*Byte.MAX_VALUE);
+							}
+						}
+						DummyConnection dc = new DummyConnection();
+						Connection c1 = new Connection(dc.chA.getInputStream(), dc.chB.getOutputStream());
+						Connection c2 = new Connection(dc.chB.getInputStream(), dc.chA.getOutputStream());
+						s1.getCB().addConnection(c1, key);
+						s2.getCB().addConnection(c2, key);
+					}
+				}
+			}
+		};
+		
+		create = new Action() {
+			@Override
+			public void execute(ArgSet args) {
+				while(args.hasStringArg()) {
+					createStation(args.fetchString());
+				}
 			}
 		};
 
@@ -41,40 +85,36 @@ public class MultiStationInterface extends CLC {
 		setDefaultAction(forwardAction);
 		mapAbbreviation('l', listAction);
 		mapOption("list", listAction);
+		mapOption("connect", connect);
+		mapAbbreviation('c', connect);
+		mapCommand("make", create);
+		mapAbbreviation('m', create);
+	}
+
+	private DCStation getStation(ArgSet args) {
+		if(!args.hasStringArg()) return null; 
+
+		String alias = args.fetchString();
+		if(!ciMap.containsKey(alias)) {
+			return null;
+		} else {
+			return ciMap.get(alias).s;
+		}
+	}
+	
+	private void createStation(String s) {
+		ciMap.put(s, new StationInterface());
 	}
 	
 	private class StationInterface extends CLC {
 		private DCStation s;
 				
-		private Action send, close, create, connect, read;
+		private Action send, close, create, read;
 		
 		public StationInterface() {		
 			s = new DCStation();
 			
-			connect = new Action() {
-				@Override
-				public void execute(ArgSet args) {
-					while(args.hasStringArg()) {
-						String alias = args.fetchString();
-						if(!ciMap.containsKey(alias)) {
-							System.err.println("[StationInterface] The alias " + alias + " is unknown.");
-							return;
-						} else {
-							if(!args.hasStringArg()) {
-								System.err.println("[StationInterface] No key has been provided for alias " + alias + ".");
-								return;
-							}
-							byte[] key = args.fetchString().getBytes();
-							DCStation l = ciMap.get(alias).s;
-							DummyConnection dc = new DummyConnection();
-							Connection c1 = new Connection(dc.chA.getInputStream(), dc.chB.getOutputStream());
-							Connection c2 = new Connection(dc.chB.getInputStream(), dc.chA.getOutputStream());
-							s.getCB().addConnection(c1, key);
-							l.getCB().addConnection(c2, key);
-						}
-					}
-				}
-			};
+			
 			
 			close = new Action() {
 				@Override
@@ -144,7 +184,6 @@ public class MultiStationInterface extends CLC {
 		private void teachCommands() {
 			mapCommand("close", close);
 			mapCommand("create", create);
-			mapCommand("connect", connect);
 			mapCommand("send", send);
 			mapCommand("read", read);
 		}
