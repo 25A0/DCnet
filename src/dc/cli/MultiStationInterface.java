@@ -30,7 +30,7 @@ public class MultiStationInterface extends CLC {
 		forwardAction = new Action() {
 			@Override
 			public void execute(ArgSet args) {
-				String s = args.fetchString();
+				String s = args.pop();
 				if(!ciMap.containsKey(s)) {
 					createStation(s);
 				}
@@ -42,7 +42,7 @@ public class MultiStationInterface extends CLC {
 			@Override
 			public void execute(ArgSet args) {
 				DCStation s1, s2;
-				while(args.hasStringArg()) {
+				while(args.hasArg()) {
 					s1 = getStation(args);
 					s2 = getStation(args);
 					if(s1 == null || s2 == null || s1 == s2) {
@@ -75,8 +75,8 @@ public class MultiStationInterface extends CLC {
 		create = new Action() {
 			@Override
 			public void execute(ArgSet args) {
-				while(args.hasStringArg()) {
-					createStation(args.fetchString());
+				while(args.hasArg()) {
+					createStation(args.pop());
 				}
 			}
 		};
@@ -92,9 +92,9 @@ public class MultiStationInterface extends CLC {
 	}
 
 	private DCStation getStation(ArgSet args) {
-		if(!args.hasStringArg()) return null; 
+		if(!args.hasArg()) return null; 
 
-		String alias = args.fetchString();
+		String alias = args.pop();
 		if(!ciMap.containsKey(alias)) {
 			return null;
 		} else {
@@ -143,10 +143,12 @@ public class MultiStationInterface extends CLC {
 					if(s != null) {
 						if(args.hasAbbArg() && args.fetchAbbr().equals('s') || args.hasOptionArg() && args.fetchOption().equals("silence")) {
 							s.getCB().broadcast();
+						} else if(!args.hasStringArg()) {
+							System.out.println("[MultiStationInterface] Please provide a message, enclosed by \" characters, or use -s or --silence to be silent in the current round");
 						} else {
-							try {
-								String m = args.fetchString();
-								Debugger.println(2, "Trying to send message " + m);
+							String m = args.fetchString();
+							Debugger.println(2, "Trying to send message " + m);
+							try {	
 								s.send(m);
 							} catch (IOException e) {
 								Debugger.println(1, e.toString());

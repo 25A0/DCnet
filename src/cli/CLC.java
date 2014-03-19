@@ -139,10 +139,10 @@ public abstract class CLC {
 			} else {
 				defaultAction.execute(args);
 			}
-		} else if(args.hasStringArg()) {
+		} else if(args.hasArg()) {
 			String s = args.peek();
 			if(commandMap.containsKey(s)) {
-				commandMap.get(args.fetchString()).execute(args);
+				commandMap.get(args.pop()).execute(args);
 			} else {
 				defaultAction.execute(args);
 			}
