@@ -85,15 +85,23 @@ public class ArgSet {
 	 */
 	private int getFirstArgEndIndex() {
 		int l = arg.length();
+		boolean inString = false;
 		// An empty string can't have any arguments
 		if(l == 0) {
 			return -1;
 		}
 		int i;
 		for(i = 0; i < l; i++) {
-			if(arg.charAt(i) <= 32) {
+			char c = arg.charAt(i);
+			if(c == '\"') {
+				inString = !inString;
+			} else  if(c <= 32 && !inString) {
 				return i;
 			}
+		}
+		if(inString) {
+			// String has not been terminated properly.
+			return -1;
 		}
 		// In this case we reached the end of the String without encountering any
 		// characters that were no white spaces
@@ -101,15 +109,16 @@ public class ArgSet {
 	}
 	
 	/**
-	 * Try to read the first argument as a String
+	 * Try to read the first argument as a String. In this case a string is enclosed by " characters.
 	 * @return      A string representation of the first argument
 	 * @throws 		InputMismatchException if there is no argument available
 	 */
 	public String fetchString() throws InputMismatchException {
-		if(peek().isEmpty()) 
-			throw new InputMismatchException("There are no arguments to fetch from.");
+		if(!hasStringArg()) 
+			throw new InputMismatchException("There are no string arguments to fetch from.");
 		else {
-			return new String(pop());
+			String s = pop();
+			return s.substring(1, s.length() - 1);
 		}
 	}
 	
@@ -146,14 +155,21 @@ public class ArgSet {
 		}
 	}
 
+	public boolean hasArg() {
+		return !peek().isEmpty();
+	}
+
 	/**
-	 * Checks whether there is another argument available.
-	 * Be aware that this function returns true even if the first argument is numeric
-	 * or an option ("-r").
-	 * @return True if another argument is present, false otherwise.
+	 * Checks whether there is another string argument available.
+	 * A string argument is enclosed by " characters.
+	 * @return True if another string argument is present, false otherwise.
 	 */
 	public boolean hasStringArg() {
-		return !peek().isEmpty();
+		String s = peek();
+		if(s.charAt(0) == '\"' && s.charAt(s.length() - 1) == '\"') {
+			return true;
+		}
+		return false;
 	}
 
 	/**

@@ -46,7 +46,7 @@ public class CLI_Test {
 	@Test
 	public void TestOptions() {
 		ArgSet a1 = new ArgSet("nooption -o --option -op -- - -");
-		assertTrue(a1.hasStringArg());
+		assertTrue(a1.hasArg());
 		assertFalse(a1.hasAbbArg());
 		assertFalse(a1.hasOptionArg());
 		a1.pop();
@@ -68,5 +68,20 @@ public class CLI_Test {
 		assertFalse(a1.hasAbbArg());
 		assertFalse(a1.hasOptionArg());
 		a1.pop();
+	}
+
+	@Test
+	public void testStringArgs() {
+		ArgSet a1 = new ArgSet("arguments \"with a string argument\" in between");
+		assertTrue(a1.hasArg());
+		assertFalse(a1.hasStringArg());
+		assertTrue(a1.pop().equals("arguments"));
+		assertTrue(a1.hasStringArg());
+		assertTrue(a1.hasArg());
+		assertTrue(a1.peek().equals("\"with a string argument\""));
+		assertTrue(a1.fetchString().equals("with a string argument"));
+		assertTrue(a1.hasArg());
+		assertFalse(a1.hasStringArg());
+		
 	}
 }
