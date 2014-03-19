@@ -40,7 +40,7 @@ public class DummyChannel {
 
 		@Override
 		public void write(int b) throws IOException {
-			Debugger.println(2, "[DummyConnection] writing " + (char)b);
+			// Debugger.println(2, "[DummyConnection] writing " + (char)b);
 			if(dataSemaphore.availablePermits() > QUEUE_BUFFER_LIMIT) {
 				throw new IOException("Buffer size limit reached!");
 			} else {

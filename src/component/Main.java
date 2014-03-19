@@ -1,7 +1,6 @@
 package component;
 
 import cli.CLI;
-import cli.MainInterface;
 
 public class Main {
 

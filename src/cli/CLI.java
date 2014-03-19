@@ -54,6 +54,7 @@ public class CLI {
 	 */
 	private void readLoop() throws IOException {
 		while(!stopped) {
+			System.out.print("[DCnet] ");
 			String s = br.readLine();
 			// TODO split on complete whitespaces, not just spaces
 			controller.handle(new ArgSet(s));

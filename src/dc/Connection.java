@@ -9,28 +9,30 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 
 import cli.Debugger;
-import dc.DCMessage;
+import dc.DCPackage;
 import dc.testing.DummyConnection;
 
 public class Connection {
 	private final InputStream is;
 	private final OutputStream os;
 	
-	public Connection(InputStream is, OutputStream os) throws IOException {
+	public Connection(InputStream is, OutputStream os) {
 		this.is = is;
 		this.os = os;
 	}
 
-	protected void send(DCMessage m) throws IOException {
-		os.write(m.toByteArray());
+	public void send(byte[] bb) throws IOException {
+		os.write(bb);
 	}
 	
-	protected DCMessage receive() throws IOException {
-//		byte[] buffer = new byte[16];
-//		is.read(buffer);
-		char c = (char) is.read();
-		Debugger.println(2, "[Connection] reading " + c);
-		return DCMessage.getMessage(String.valueOf(c).getBytes());
+	public byte[] receiveMessage() throws IOException {
+		byte[] buffer = new byte[DCPackage.PAYLOAD_SIZE];
+		for(int i = 0; i < DCPackage.PAYLOAD_SIZE; i++) {
+			buffer[i] = (byte) is.read();
+		}
+		return buffer;
+		// String s = Arrays.toString(buffer);
+		// Debugger.println(2, "[Connection] reading " + s);
+		// return DCPackage.getMessages(s)[0];
 	}
-
 }
