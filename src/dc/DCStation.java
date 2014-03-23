@@ -1,5 +1,7 @@
 package dc;
 
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.concurrent.Semaphore;
@@ -10,6 +12,8 @@ public class DCStation {
 	private final LinkedList<String> pendingData;
 	private Semaphore pendingDataSemaphore;
 	private ConnectionBundle cb;
+	
+	private BufferedOutputStream bos;
 
 	private boolean isClosed = false;
 	
@@ -19,6 +23,7 @@ public class DCStation {
 		pendingData = new LinkedList<String>();
 		pendingDataSemaphore = new Semaphore(0);
 		
+		bos = new BufferedOutputStream(cb.getOutputStream());
 		// (new Thread(new ProtocolCore())).start();
 	}
 	
@@ -31,9 +36,7 @@ public class DCStation {
 	}
 	
 	public void send(String s) throws IOException {
-		// pendingData.add(s);
-		// pendingDataSemaphore.release();
-		cb.broadcast(DCPackage.getMessages(s)[0]);
+		cb.getOutputStream().write(s.getBytes());
 	}
 	
 	private class ProtocolCore implements Runnable {

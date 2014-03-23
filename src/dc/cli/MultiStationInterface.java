@@ -108,6 +108,7 @@ public class MultiStationInterface extends CLC {
 	
 	private class StationInterface extends CLC {
 		private DCStation s;
+		private int roundCounter;
 				
 		private Action send, close, create, read;
 		
@@ -141,9 +142,7 @@ public class MultiStationInterface extends CLC {
 				@Override
 				public void execute(ArgSet args) {
 					if(s != null) {
-						if(args.hasAbbArg() && args.fetchAbbr().equals('s') || args.hasOptionArg() && args.fetchOption().equals("silence")) {
-							s.getCB().broadcast();
-						} else if(!args.hasStringArg()) {
+						if(!args.hasStringArg()) {
 							System.out.println("[MultiStationInterface] Please provide a message, enclosed by \" characters, or use -s or --silence to be silent in the current round");
 						} else {
 							String m = args.fetchString();
@@ -166,15 +165,14 @@ public class MultiStationInterface extends CLC {
 					if(!s.getCB().canReceive()) {
 						System.out.println("[StationInterface] This station does currently not have any output.");
 					} else {
-						int i = 1;
 						while(s.getCB().canReceive()) {
 							byte[] output = s.getCB().receive();
 							StringBuilder sb = new StringBuilder();
 							for(int k = 0; k < output.length; k++) {
 								sb.append((char) output[k]);
 							}
-							System.out.println(i + ": " + sb.toString());
-							i++;
+							System.out.println(roundCounter + ": " + sb.toString());
+							roundCounter++;
 						}
 					}
 				}
