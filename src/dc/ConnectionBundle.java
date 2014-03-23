@@ -217,17 +217,28 @@ public class ConnectionBundle {
 		private byte[] getMessage() {
 			synchronized(messageBuffer) {
 				byte[] message;
-				if(messageBuffer.isEmpty()) {
-					synchronized(this) {
-						for(; writePointer < payloadSize; writePointer++) {
-							currentMessage[writePointer] = 0;
+				/**
+				 *  Make sure that there are enough connections. This prevents stations
+				 *  from broadcasting messages once the number of connections drops below
+				 *  the minimum. If too little connections are available then the station
+				 *  will only send empty messages
+				 */
+				if(connectionSemaphore.tryAcquire()) {
+					connectionSemaphore.release();
+					if(messageBuffer.isEmpty()) {
+						synchronized(this) {
+							for(; writePointer < payloadSize; writePointer++) {
+								currentMessage[writePointer] = 0;
+							}
+							message = currentMessage;
+							currentMessage = new byte[payloadSize];
+							writePointer = 0;
 						}
-						message = currentMessage;
-						currentMessage = new byte[payloadSize];
-						writePointer = 0;
+					} else {
+						message = messageBuffer.poll();
 					}
 				} else {
-					message = messageBuffer.poll();
+					message = new byte[payloadSize];
 				}
 				return message;
 			}
@@ -244,14 +255,7 @@ public class ConnectionBundle {
 				} catch (InterruptedException e) {
 					// ignore
 				}
-				/**
-				 *  Make sure that there are enough connections. This prevents stations
-				 *  from broadcasting messages once the number of connections drops below
-				 *  the minimum.
-				 */
-				connectionSemaphore.acquireUninterruptibly();
-				connectionSemaphore.release();
-				
+
 				broadcast();
 				// Wait until a new round can be started
 				roundCompletionSemaphore.acquireUninterruptibly();
