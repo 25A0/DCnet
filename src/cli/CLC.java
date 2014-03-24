@@ -67,7 +67,7 @@ public abstract class CLC {
 	public final void mapAbbreviation(Character abbr, Action a) {
 		if(abbrMap.containsKey(abbr)) {
 			System.err.println("[CLC] The abbreviation -" + abbr + " has already been registered.");
-		} else if(!Character.isAlphabetic(abbr)) {
+		} else if(!Character.isLetter(abbr)) {
 			System.err.println("[CLC] The abbreviation -" + abbr + " is not alphabetic.");
 		} else if(a == null) {
 			System.err.println("[CLC] The abbreviation -" + abbr + " can not be linked to a null Action.");

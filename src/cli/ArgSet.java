@@ -197,7 +197,7 @@ public class ArgSet {
 		if(s.isEmpty()) {
 			return false;
 		} else {
-			return s.length() > 3 && s.charAt(0) == '-' && s.charAt(1) == '-' && Character.isAlphabetic(s.charAt(2));
+			return s.length() > 3 && s.charAt(0) == '-' && s.charAt(1) == '-' && Character.isLetter(s.charAt(2));
 		}
 	}
 
@@ -206,7 +206,7 @@ public class ArgSet {
 		if(s.isEmpty()) {
 			return false;
 		} else {
-			return s.length() == 2 && s.charAt(0) == '-' && Character.isAlphabetic(s.charAt(1));
+			return s.length() == 2 && s.charAt(0) == '-' && Character.isLetter(s.charAt(1));
 		} 
 	}
 
