@@ -6,7 +6,8 @@ import java.util.Arrays;
 public class DCPackage {
 	private byte[] payload;
 
-	public static final int PAYLOAD_SIZE = 16;
+	// The maximum payload size for a single package
+	public static final int PAYLOAD_SIZE = 1024;
 	
 	public DCPackage(byte[] payload) {
 		if(payload.length > PAYLOAD_SIZE) {

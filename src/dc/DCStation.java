@@ -9,8 +9,6 @@ import java.util.concurrent.Semaphore;
 import cli.Debugger;
 
 public class DCStation {
-	private final LinkedList<String> pendingData;
-	private Semaphore pendingDataSemaphore;
 	private ConnectionBundle cb;
 	
 	private BufferedOutputStream bos;
@@ -20,8 +18,6 @@ public class DCStation {
 	public DCStation() {
 		Debugger.println(2, "[DCStation] Station started");
 		cb = new ConnectionBundle();
-		pendingData = new LinkedList<String>();
-		pendingDataSemaphore = new Semaphore(0);
 		
 		bos = new BufferedOutputStream(cb.getOutputStream());
 		// (new Thread(new ProtocolCore())).start();
@@ -39,22 +35,6 @@ public class DCStation {
 		cb.getOutputStream().write(s.getBytes());
 	}
 	
-	private class ProtocolCore implements Runnable {
-		
-		@Override
-		public void run() {
-			while(!isClosed) {
-				try{
-					Thread.sleep(1000);
-					pendingDataSemaphore.acquireUninterruptibly();
-					
-				} catch(InterruptedException e) {
-					System.err.println("[DCStation] Unable to complete sleep. Proceeding...");
-				}
-
-				
-			}
-		}
-	}
+	
 
 }
