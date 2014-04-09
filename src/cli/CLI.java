@@ -3,6 +3,9 @@ package cli;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileInputStream;
 
 /**
  * <h2>Command line interface</h2>
@@ -75,6 +78,7 @@ public class CLI {
 					stopped = true;
 				}
 			};
+			
 			Action debugAction = new Action() {
 				@Override
 				public void execute(ArgSet args) {
@@ -82,13 +86,41 @@ public class CLI {
 					Debugger.setLevel(i);
 				}
 			};
+
+			Action scriptAction = new Action() {
+				@Override
+				public void execute(ArgSet args) {
+					if(!args.hasArg()) {
+						System.out.println("[CommandLineInterface] Please provide a relative path to the script that you want to run");
+					} else {
+						String path = args.pop();
+						try {
+							File f = new File(path);
+							BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
+							while(br.ready()) {
+								String s = br.readLine();
+								controller.handle(new ArgSet(s));
+							}
+							// f.close();
+						} catch(FileNotFoundException e) {
+							System.out.println("[CommandLineInterface] The file " + path + " does not exist.");
+						} catch(IOException e) {
+							System.out.println("[CommandLineInterface] An error occurred while reading from file " + path);
+							e.printStackTrace();
+						}
+					}
+
+				}
+			};
 			
 			Action innerAction = new CommandAction(innerController);
 			
-			this.mapCommand("exit", exitAction);
-			this.mapAbbreviation('d', debugAction);
-			this.mapOption("debug", debugAction);
-			this.setDefaultAction(innerAction);
+			mapCommand("exit", exitAction);
+			mapAbbreviation('d', debugAction);
+			mapOption("debug", debugAction);
+			mapAbbreviation('r', scriptAction);
+			mapOption("run", scriptAction);
+			setDefaultAction(innerAction);
 		}
 	}
 }
