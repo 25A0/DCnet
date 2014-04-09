@@ -4,8 +4,11 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -152,10 +155,13 @@ public class MultiStationInterface extends CLC {
 							File f = new File(path);
 							try {
 								InputStream is= new FileInputStream(f);
+								long byteCount = 0;
 								while( is.available() > 0) {
 									s.send((byte) is.read());									
+									byteCount++;
 								}
 								is.close();
+								System.out.println("[MultiStationInterface] " + byteCount + " byte(s) have been read from file " + path);
 							} catch (FileNotFoundException e) {
 								System.out.println("[MultiStationInterface] The file at " + path + " was not found. Please provide a valid path to an existing file.");
 							} catch (IOException e) {
@@ -184,14 +190,39 @@ public class MultiStationInterface extends CLC {
 					if(!s.getCB().canReceive()) {
 						System.out.println("[StationInterface] This station does currently not have any output.");
 					} else {
-						while(s.getCB().canReceive()) {
-							byte[] output = s.getCB().receive();
-							StringBuilder sb = new StringBuilder();
-							for(int k = 0; k < output.length; k++) {
-								sb.append((char) output[k]);
+						if(args.hasAbbArg() && args.fetchAbbr() == 'f' || args.hasOptionArg() && args.fetchOption().equals("file")) {
+							if(!args.hasArg()) {
+								System.out.println("[MultiStationInterface] Please provide a relative path to a file that you want to write to");
+							} else {
+								String path = args.pop();
+								File f = new File(path);
+								try {
+									OutputStream os= new FileOutputStream(f, true);
+									long byteCount = 0;
+									while(s.getCB().canReceive()) {
+										byte[] output = s.getCB().receive();
+										byteCount += output.length;
+										os.write(output);											
+										roundCounter++;
+									}
+									os.close();
+									System.out.println("[MultiStationInterface] " + byteCount + " byte(s) have been appended to file " + path);
+								} catch (FileNotFoundException e) {
+									System.out.println("[MultiStationInterface] The file at " + path + " was not found. Please provide a valid path to an existing file.");
+								} catch (IOException e) {
+									System.out.println("[MultiStationInterface] An error occured while reading from file " + path);
+								}					
 							}
-							System.out.println(roundCounter + ": " + sb.toString());
-							roundCounter++;
+						} else {
+							while(s.getCB().canReceive()) {
+								byte[] output = s.getCB().receive();
+								StringBuilder sb = new StringBuilder();
+								for(int k = 0; k < output.length; k++) {
+									sb.append((char) output[k]);
+								}
+								System.out.println(roundCounter + ": " + sb.toString());
+								roundCounter++;
+							}
 						}
 					}
 				}
