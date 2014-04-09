@@ -35,6 +35,10 @@ public class DCStation {
 		cb.getOutputStream().write(s.getBytes());
 	}
 	
+	public void send(byte b) throws IOException {
+		cb.getOutputStream().write(b);
+	}
+	
 	
 
 }

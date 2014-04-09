@@ -1,6 +1,11 @@
 package dc.cli;
 
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -142,8 +147,22 @@ public class MultiStationInterface extends CLC {
 				@Override
 				public void execute(ArgSet args) {
 					if(s != null) {
-						if(!args.hasStringArg()) {
-							System.out.println("[MultiStationInterface] Please provide a message, enclosed by \" characters, or use -s or --silence to be silent in the current round");
+						if(args.hasAbbArg() && args.fetchAbbr() == 'f' || args.hasOptionArg() && args.fetchOption().equals("file")) {
+							String path = args.pop();
+							File f = new File(path);
+							try {
+								InputStream is= new FileInputStream(f);
+								while( is.available() > 0) {
+									s.send((byte) is.read());									
+								}
+								is.close();
+							} catch (FileNotFoundException e) {
+								System.out.println("[MultiStationInterface] The file at " + path + " was not found. Please provide a valid path to an existing file.");
+							} catch (IOException e) {
+								System.out.println("[MultiStationInterface] An error occured while reading from file " + path);
+							}							
+						} else if(!args.hasStringArg()) {
+							System.out.println("[MultiStationInterface] Please provide a message, enclosed by \" characters");
 						} else {
 							String m = args.fetchString();
 							Debugger.println(2, "Trying to send message " + m);
