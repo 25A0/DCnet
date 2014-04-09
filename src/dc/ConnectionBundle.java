@@ -45,6 +45,11 @@ public class ConnectionBundle {
 	 * This semaphore keeps track of the number of uncompleted rounds.
 	 */
 	private final Semaphore roundCompletionSemaphore;
+
+	/**
+	 * This semaphore counts the completed rounds until a certain message has been sent
+	 */
+	private Semaphore messageSendStatusSemaphore;
 	
 	public ConnectionBundle() {
 		kh = new KeyHandler();
@@ -71,6 +76,7 @@ public class ConnectionBundle {
 		 * For now, more than one round at a time will break the protocol.
 		 */
 		roundCompletionSemaphore = new Semaphore(0);
+		messageSendStatusSemaphore = new Semaphore(0);
 
 		inputBuffer = new LinkedList<byte[]>();
 		messageBuffer = new LinkedList<byte[]>();
@@ -187,6 +193,7 @@ public class ConnectionBundle {
 				}
 				// But announce the end of the round anyways.
 				roundCompletionSemaphore.release();
+				messageSendStatusSemaphore.release();
 				reset();
 			}
 		}
@@ -266,6 +273,15 @@ public class ConnectionBundle {
 		} else {
 			throw new InputMismatchException("The provided input is malformed.");
 		}
+	}
+
+	public void block() {
+		accessSemaphore.acquireUninterruptibly();
+			int waitCounter = messageBuffer.size();
+			if(os.writePointer > 0) waitCounter++;
+			messageSendStatusSemaphore = new Semaphore(1-waitCounter);
+		accessSemaphore.release();
+		messageSendStatusSemaphore.acquireUninterruptibly();
 	}
 
 	private class SimpleOutputStream extends OutputStream {

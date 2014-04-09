@@ -149,7 +149,11 @@ public class MultiStationInterface extends CLC {
 			send = new Action() {
 				@Override
 				public void execute(ArgSet args) {
+					boolean block = false;
 					if(s != null) {
+						if(args.hasAbbArg() && args.fetchAbbr() == 'b' || args.hasOptionArg() && args.fetchOption().equals("block")) {
+							block = true;
+						}
 						if(args.hasAbbArg() && args.fetchAbbr() == 'f' || args.hasOptionArg() && args.fetchOption().equals("file")) {
 							String path = args.pop();
 							File f = new File(path);
@@ -161,6 +165,7 @@ public class MultiStationInterface extends CLC {
 									byteCount++;
 								}
 								is.close();
+								if(block) s.getCB().block();
 								System.out.println("[MultiStationInterface] " + byteCount + " byte(s) have been read from file " + path);
 							} catch (FileNotFoundException e) {
 								System.out.println("[MultiStationInterface] The file at " + path + " was not found. Please provide a valid path to an existing file.");
@@ -174,6 +179,7 @@ public class MultiStationInterface extends CLC {
 							Debugger.println(2, "Trying to send message " + m);
 							try {	
 								s.send(m);
+								if(block) s.getCB().block();
 							} catch (IOException e) {
 								Debugger.println(1, e.toString());
 							}
