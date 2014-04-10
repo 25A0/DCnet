@@ -85,15 +85,23 @@ public class ArgSet {
 	 */
 	private int getFirstArgEndIndex() {
 		int l = arg.length();
+		boolean inString = false;
 		// An empty string can't have any arguments
 		if(l == 0) {
 			return -1;
 		}
 		int i;
 		for(i = 0; i < l; i++) {
-			if(arg.charAt(i) <= 32) {
+			char c = arg.charAt(i);
+			if(c == '\"') {
+				inString = !inString;
+			} else  if(c <= 32 && !inString) {
 				return i;
 			}
+		}
+		if(inString) {
+			// String has not been terminated properly.
+			return -1;
 		}
 		// In this case we reached the end of the String without encountering any
 		// characters that were no white spaces
@@ -101,15 +109,16 @@ public class ArgSet {
 	}
 	
 	/**
-	 * Try to read the first argument as a String
+	 * Try to read the first argument as a String. In this case a string is enclosed by " characters.
 	 * @return      A string representation of the first argument
 	 * @throws 		InputMismatchException if there is no argument available
 	 */
-	protected String fetchString() throws InputMismatchException {
-		if(peek().isEmpty()) 
-			throw new InputMismatchException("There are no arguments to fetch from.");
+	public String fetchString() throws InputMismatchException {
+		if(!hasStringArg()) 
+			throw new InputMismatchException("There are no string arguments to fetch from.");
 		else {
-			return new String(pop());
+			String s = pop();
+			return s.substring(1, s.length() - 1);
 		}
 	}
 	
@@ -119,13 +128,86 @@ public class ArgSet {
 	 * @throws 		InputMismatchException if there is no argument available
 	 * @throws NumberFormatException if the cast to an Integer fails
 	 */
-	protected Integer fetchInteger() throws InputMismatchException, NumberFormatException {
+	public Integer fetchInteger() throws InputMismatchException, NumberFormatException {
 		if(peek().isEmpty()) 
-			throw new InputMismatchException("There are no arguments to fetch from.");
+			throw new InputMismatchException("There are no integer arguments to fetch from.");
 		else {
 			Integer i = Integer.valueOf(pop());
 			return i;
 		}
+	}
+	
+	public Character fetchAbbr() {
+		if(!hasAbbArg()) {
+			throw new InputMismatchException("There is no abbreviation at the head of ArgSet.");
+		} else {
+			String s = pop();
+			return s.charAt(1);
+		}
+	}
+	
+	public String fetchOption() {
+		if(!hasOptionArg()) {
+			throw new InputMismatchException("There is no option at the head of ArgSet.");
+		} else {
+			String s = pop();
+			return s.substring(2);
+		}
+	}
+
+	public boolean hasArg() {
+		return !peek().isEmpty();
+	}
+
+	/**
+	 * Checks whether there is another string argument available.
+	 * A string argument is enclosed by " characters.
+	 * @return True if another string argument is present, false otherwise.
+	 */
+	public boolean hasStringArg() {
+		String s = peek();
+		if(s.charAt(0) == '\"' && s.charAt(s.length() - 1) == '\"') {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Checks whether there is a numeric argument at the head of the ArgSet.
+	 * It attempts to cast the first argument to an integer. If that fails, then
+	 * false is returned.
+	 * @return False if the ArgSet is empty or if the first argument can not be casted to an integer. True otherwise.
+	 */
+	public boolean hasIntArg() {
+		try{
+			String s = peek();
+			if(s.isEmpty()) {
+				return false;
+			} else {
+				Integer.valueOf(s);
+			}
+		} catch(NumberFormatException e) {
+			return false;
+		}
+		return true;
+	}
+
+	public boolean hasOptionArg() {
+		String s = peek();
+		if(s.isEmpty()) {
+			return false;
+		} else {
+			return s.length() > 3 && s.charAt(0) == '-' && s.charAt(1) == '-' && Character.isLetter(s.charAt(2));
+		}
+	}
+
+	public boolean hasAbbArg() {
+		String s = peek();
+		if(s.isEmpty()) {
+			return false;
+		} else {
+			return s.length() == 2 && s.charAt(0) == '-' && Character.isLetter(s.charAt(1));
+		} 
 	}
 
 }
