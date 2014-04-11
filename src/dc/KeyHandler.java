@@ -8,21 +8,24 @@ import dc.DCPackage;
 public class KeyHandler {
 	public static final int KEY_SIZE = DCPackage.PAYLOAD_SIZE;
 	
-	private HashMap<Connection, byte[]> keys;
+	private HashMap<String, byte[]> keys;
 	private byte[] currentKeyMix;
+
+	private int numKeys;
 	
 	public KeyHandler() {
-		keys = new HashMap<Connection, byte[]>();
+		keys = new HashMap<String, byte[]>();
 		currentKeyMix = new byte[KEY_SIZE];
 		Arrays.fill(currentKeyMix, (byte) 0);
 	}
 	
-	public void addKey(Connection c, byte[] key) {
+	public void addKey(String c, byte[] key) {
 		if(key.length != KEY_SIZE) {
 			System.err.println("[KeyHandler] Severe: The provided key has length " + key.length + " but it has to be of length " + KEY_SIZE + ".");
 		} else {
 			synchronized(keys) {
 				keys.put(c, key);
+				numKeys++;
 				
 				synchronized(currentKeyMix) {
 					for(int i = 0; i < KEY_SIZE; i++) {
@@ -33,10 +36,10 @@ public class KeyHandler {
 		}
 	}
 	
-	public void removeKey(Connection c) {
+	public void removeKey(String c) {
 		synchronized(keys) {
 			byte[] oldKey = keys.remove(c);
-			
+			numKeys--;
 			synchronized(currentKeyMix) {
 				for(int i = 0; i < KEY_SIZE; i++) {
 					currentKeyMix[i] ^= oldKey[i];
@@ -57,5 +60,11 @@ public class KeyHandler {
 			}
 		}
 		return output;
+	}
+
+	public boolean approved() {
+		synchronized(keys) {
+			return numKeys >= DCConfig.MIN_NUM_KEYS;
+		}
 	}
 }
