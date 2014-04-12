@@ -25,20 +25,11 @@ import java.util.Arrays;
 
 
 public class MultiStationInterface extends CLC {
-<<<<<<< Updated upstream
 	private ArrayList<String> stations;
 	private Action listAction, noSuchStationAction, connect, create;
 
 	public MultiStationInterface() {
 		stations = new ArrayList<String>();
-=======
-	private Map<String, StationInterface> clientMap, serverMap;
-	private Action listAction, forwardAction, connect, create;
-
-	public MultiStationInterface() {
-		clientMap = new HashMap<String, StationInterface>();
-		serverMap = new HashMap<String, StationInterface>();
->>>>>>> Stashed changes
 
 		listAction = new Action() {
 			@Override
@@ -103,7 +94,6 @@ public class MultiStationInterface extends CLC {
 					}
 				}
 				while(args.hasArg()) {
-<<<<<<< Updated upstream
 					String alias = args.pop();
 					if(stations.contains(alias)) {
 						System.out.println("[MultiStationInterface] A station with alias " + alias + " already exists.");
@@ -111,10 +101,6 @@ public class MultiStationInterface extends CLC {
 						stations.add(alias);
 						setContext(alias, new StationInterface());
 					}
-=======
-
-					createStation(args.pop());
->>>>>>> Stashed changes
 				}
 			}
 		};
