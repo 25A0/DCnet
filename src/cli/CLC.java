@@ -9,10 +9,11 @@ import java.util.Map;
  * @author moritz
  *
  */
-public abstract class CLC {
+public class CLC {
 	private Map<String, Action> commandMap;
 	private Map<Character, Action> abbrMap;
 	private Map<String, Action> optionMap;
+	private Map<String, CLC> contextMap;
 	private Action defaultAction, rootAction;
 	
 	/**
@@ -44,6 +45,7 @@ public abstract class CLC {
 		commandMap = new HashMap<String, Action>();
 		abbrMap = new HashMap<Character, Action>();
 		optionMap = new HashMap<String, Action>();
+		contextMap = new HashMap<String, CLC>();
 		defaultAction = unknownCommandAction;
 		rootAction = defaultRootAction;
 	}
@@ -59,7 +61,9 @@ public abstract class CLC {
 			System.err.println("[CLC] Command " + command + " has already been registered.");
 		else if(a == null) {
 			System.err.println("[CLC] Command " + command + " can not be linked to a null Action.");
-		} else {
+		} else if(contextMap.containsKey(command)) {
+			contextMap.get(command).setRootAction(a);
+		} else {	
 			commandMap.put(command, a);
 		}
 	}
@@ -84,6 +88,16 @@ public abstract class CLC {
 		} else {
 			optionMap.put(option, a);
 		}
+	}
+
+	public final CLC getContext(String context) {
+		if(!contextMap.containsKey(context)) {
+			contextMap.put(context, new CLC());
+			if(commandMap.containsKey(context)) {
+				contextMap.get(context).setRootAction(commandMap.get(context));
+			}
+		}
+		return contextMap.get(context);
 	}
 	
 	/**
@@ -141,7 +155,9 @@ public abstract class CLC {
 			}
 		} else if(args.hasArg()) {
 			String s = args.peek();
-			if(commandMap.containsKey(s)) {
+			if(contextMap.containsKey(s)) {
+				contextMap.get(args.pop()).handle(args);
+			} else if(commandMap.containsKey(s)) {
 				commandMap.get(args.pop()).execute(args);
 			} else {
 				defaultAction.execute(args);
