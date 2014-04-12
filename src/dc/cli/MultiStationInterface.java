@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,29 +21,28 @@ import dc.DCStation;
 import dc.KeyHandler;
 import dc.testing.DummyConnection;
 
+import java.util.Arrays;
+
 
 public class MultiStationInterface extends CLC {
-	private Map<String, StationInterface> ciMap;
-	private Action listAction, forwardAction, connect, create;
+	private ArrayList<String> stations;
+	private Action listAction, noSuchStationAction, connect, create;
 
 	public MultiStationInterface() {
-		ciMap = new HashMap<String, StationInterface>();
+		stations = new ArrayList<String>();
 
 		listAction = new Action() {
 			@Override
 			public void execute(ArgSet args) {
-				System.out.println(ciMap.keySet());
+				System.out.println(stations);
 			}
 		};
 
-		forwardAction = new Action() {
+		noSuchStationAction = new Action() {
 			@Override
 			public void execute(ArgSet args) {
 				String s = args.pop();
-				if(!ciMap.containsKey(s)) {
-					createStation(s);
-				}
-				ciMap.get(s).handle(args);
+				System.out.println("[MultiStationInterface] No command is associated with \"" + s + "\". If you want to create a station with that alias, use \"station make "+s+"\"");
 			}
 		};
 
@@ -84,13 +84,19 @@ public class MultiStationInterface extends CLC {
 			@Override
 			public void execute(ArgSet args) {
 				while(args.hasArg()) {
-					createStation(args.pop());
+					String alias = args.pop();
+					if(stations.contains(alias)) {
+						System.out.println("[MultiStationInterface] A station with alias " + alias + " already exists.");
+					} else {
+						stations.add(alias);
+						setContext(alias, new StationInterface());
+					}
 				}
 			}
 		};
 
 		setRootAction(listAction);
-		setDefaultAction(forwardAction);
+		setDefaultAction(noSuchStationAction);
 		mapAbbreviation('l', listAction);
 		mapOption("list", listAction);
 		mapOption("connect", connect);
@@ -103,17 +109,13 @@ public class MultiStationInterface extends CLC {
 		if(!args.hasArg()) return null; 
 
 		String alias = args.pop();
-		if(!ciMap.containsKey(alias)) {
+		if(!stations.contains(alias)) {
 			return null;
 		} else {
-			return ciMap.get(alias).s;
+			return ((StationInterface) getContext(alias)).s;
 		}
 	}
-	
-	private void createStation(String s) {
-		ciMap.put(s, new StationInterface());
-	}
-	
+		
 	private class StationInterface extends CLC {
 		private DCStation s;
 		private int roundCounter;
