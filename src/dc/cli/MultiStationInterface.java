@@ -25,11 +25,20 @@ import java.util.Arrays;
 
 
 public class MultiStationInterface extends CLC {
+<<<<<<< Updated upstream
 	private ArrayList<String> stations;
 	private Action listAction, noSuchStationAction, connect, create;
 
 	public MultiStationInterface() {
 		stations = new ArrayList<String>();
+=======
+	private Map<String, StationInterface> clientMap, serverMap;
+	private Action listAction, forwardAction, connect, create;
+
+	public MultiStationInterface() {
+		clientMap = new HashMap<String, StationInterface>();
+		serverMap = new HashMap<String, StationInterface>();
+>>>>>>> Stashed changes
 
 		listAction = new Action() {
 			@Override
@@ -79,11 +88,22 @@ public class MultiStationInterface extends CLC {
 				}
 			}
 		};
-		
+
 		create = new Action() {
 			@Override
 			public void execute(ArgSet args) {
+				if(!args.hasArg()) {
+					System.out.println("[MultiStationInterface] Please provide a valid command of the form \"(client|c|server|s) <alias>... \"");
+				} else {
+					String type = args.pop();
+					if(type.equals("client") || type.equals("c")) {
+						
+					} else if(type.equals("server") || type.equals("s")) {
+						
+					}
+				}
 				while(args.hasArg()) {
+<<<<<<< Updated upstream
 					String alias = args.pop();
 					if(stations.contains(alias)) {
 						System.out.println("[MultiStationInterface] A station with alias " + alias + " already exists.");
@@ -91,6 +111,10 @@ public class MultiStationInterface extends CLC {
 						stations.add(alias);
 						setContext(alias, new StationInterface());
 					}
+=======
+
+					createStation(args.pop());
+>>>>>>> Stashed changes
 				}
 			}
 		};
