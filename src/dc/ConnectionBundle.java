@@ -43,8 +43,8 @@ public class ConnectionBundle {
 		remaining = 0;
 	}
 	
-	public void addConnection(Connection c, byte[] key) {
-		Debugger.println(2, "[ConnectionBundle] New connection to " + c.toString() + " with key " + Arrays.toString(key));
+	public void addConnection(Connection c) {
+		Debugger.println(2, "[ConnectionBundle] New connection to " + c.toString());
 		accessSemaphore.acquireUninterruptibly();
 			ConnectionHandler ch = new ConnectionHandler(c);
 			chl.add(ch);
@@ -116,6 +116,7 @@ public class ConnectionBundle {
 			remaining--;
 			Debugger.println(2, "[ConnectionBundle] Remaining messages: " + remaining);
 			if(remaining == 0) {
+				Debugger.println(2, "[ConnectionBundle] Composed input: " + Arrays.toString(currentInput));
 				inputBuffer.add(currentInput);
 				inputAvailable.release();
 				

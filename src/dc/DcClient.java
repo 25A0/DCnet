@@ -6,6 +6,7 @@ import java.util.concurrent.Semaphore;
 import dc.DCPackage;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import util.Padding10;
 import cli.Debugger;
@@ -27,8 +28,8 @@ public class DcClient extends DCStation{
 	protected final MessageBuffer mb;
 
 
-	public DcClient(){
-		super();
+	public DcClient(String alias){
+		super(alias);
 		
 		/**
 		 * The number of initial releases determine how many rounds can run in parallel.
@@ -91,6 +92,9 @@ public class DcClient extends DCStation{
 		@Override
 		public void run() {
 			while(!isClosed) {
+				Debugger.println(2, "[DcClient "+alias+"] Waiting for connectionSemaphore");
+				connectionSemaphore.acquireUninterruptibly();
+				Debugger.println(2, "[DcClient "+alias+"] ConnectionSemaphore acquired");
 				try{
 					Thread.sleep(1000);
 				} catch (InterruptedException e) {
@@ -110,9 +114,13 @@ public class DcClient extends DCStation{
 					} else {
 						message = new byte[DCPackage.PAYLOAD_SIZE];
 					}
+					Debugger.println(2, "[DcClient "+alias+"] Sending message " + Arrays.toString(message));
 					output = kh.getOutput(message);
+					Debugger.println(2, "[DcClient "+alias+"] Sending output " + Arrays.toString(output));
+					
 				}
 				broadcast(output);
+				connectionSemaphore.release();
 				// Wait until a new round can be started
 				roundCompletionSemaphore.acquireUninterruptibly();
 			}

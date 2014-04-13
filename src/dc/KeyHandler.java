@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import dc.DCPackage;
+import cli.Debugger;
 
 public class KeyHandler {
 	public static final int KEY_SIZE = DCPackage.PAYLOAD_SIZE;
@@ -23,6 +24,7 @@ public class KeyHandler {
 		if(key.length != KEY_SIZE) {
 			System.err.println("[KeyHandler] Severe: The provided key has length " + key.length + " but it has to be of length " + KEY_SIZE + ".");
 		} else {
+			Debugger.println(2, "[KeyHandler] Adding key " + String.valueOf(key) + " for station " + c + " to keychain.");
 			synchronized(keys) {
 				keys.put(c, key);
 				numKeys++;

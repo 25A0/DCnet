@@ -59,7 +59,7 @@ public class DummyChannel {
 		public int read() throws IOException {
 			dataSemaphore.acquireUninterruptibly();
 			synchronized(dataQueue) {
-				Debugger.println(2, "[DummyConnection] reading " + (char) (dataQueue.peek().intValue()) );
+				// Debugger.println(2, "[DummyConnection] reading " + (char) (dataQueue.peek().intValue()) );
 				return dataQueue.poll();
 			}
 		}

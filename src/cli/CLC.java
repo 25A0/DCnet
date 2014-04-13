@@ -89,7 +89,7 @@ public class CLC {
 			optionMap.put(option, a);
 		}
 	}
-
+	
 	public final void setContext(String context, CLC contextController) {
 		if(contextMap.containsKey(context)) {
 			System.out.println("[CLC] Warning: There is already a context controller associated with the context "+  context);

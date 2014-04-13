@@ -12,17 +12,23 @@ import cli.Debugger;
 
 public abstract class DCStation {
 	protected Connection c;
+	protected final String alias;
 	protected final KeyHandler kh;
 	
 	protected boolean isClosed = false;
 
 	protected final Semaphore connectionSemaphore;
 	
-	public DCStation() {
+	public DCStation(String alias) {
+		this.alias = alias;
 		kh = new KeyHandler();
 		connectionSemaphore = new Semaphore(0);
 		(new Thread(new InputReader())).start();
-		Debugger.println(2, "[DCStation] Station started");
+		Debugger.println(2, "[DCStation] Station " + alias + " started");
+	}
+
+	public String getAlias() {
+		return alias;
 	}
 
 	protected void broadcast(byte[] output) {	
@@ -41,8 +47,10 @@ public abstract class DCStation {
 	public void setConnection(Connection c) {
 		if(this.c != null) {
 			connectionSemaphore.acquireUninterruptibly();
+			connectionSemaphore.acquireUninterruptibly();
 		}
 		this.c = c;
+		connectionSemaphore.release();
 		connectionSemaphore.release();
 
 	}

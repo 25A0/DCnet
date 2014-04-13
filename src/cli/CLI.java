@@ -119,7 +119,7 @@ public class CLI {
 			mapAbbreviation('d', debugAction);
 			mapOption("debug", debugAction);
 			mapAbbreviation('r', scriptAction);
-			mapOption("run", scriptAction);
+			mapCommand("run", scriptAction);
 			setDefaultAction(innerAction);
 		}
 	}

@@ -1,40 +1,42 @@
 package dc.cli;
 
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 
 import cli.ArgSet;
 import cli.CLC;
 import cli.Debugger;
 import dc.Connection;
 import dc.DCStation;
+import dc.DcServer;
+import dc.DcClient;
 import dc.KeyHandler;
 import dc.testing.DummyConnection;
 
-import java.util.Arrays;
-
 
 public class MultiStationInterface extends CLC {
-	private ArrayList<String> stations;
-	private Action listAction, noSuchStationAction, connect, create;
+	private HashMap<String, DcServer> servers;
+	private HashMap<String, DcClient> clients;
+
+	private Action listAction, noSuchStationAction, create, createServer, createClient;
 
 	public MultiStationInterface() {
-		stations = new ArrayList<String>();
+		servers = new HashMap<String, DcServer>();
+		clients = new HashMap<String, DcClient>();
 
 		listAction = new Action() {
 			@Override
 			public void execute(ArgSet args) {
-				System.out.println(stations);
+				System.out.println("Servers:");
+				System.out.println(servers.keySet().toString());
+				System.out.println("Clients:");
+				System.out.println(clients.keySet().toString());
 			}
 		};
 
@@ -46,60 +48,40 @@ public class MultiStationInterface extends CLC {
 			}
 		};
 
-		connect = new Action() {
+		create = new Action() {
 			@Override
 			public void execute(ArgSet args) {
-				DCStation s1, s2;
+				System.out.println("[MultiStationInterface] Please provide a valid command of the form \"(make | m) (client|c|server|s) <alias>... \"");
+			}
+		};
+
+		createServer = new Action() {
+			@Override
+			public void execute(ArgSet args) {
 				while(args.hasArg()) {
-					s1 = getStation(args);
-					s2 = getStation(args);
-					if(s1 == null || s2 == null || s1 == s2) {
-						System.err.println("[MultiStationInterface] Please provide two different stations");
+					String alias = args.pop();
+					if(clients.containsKey(alias) || servers.containsKey(alias)) {
+						System.out.println("[MultiStationInterface] A client or server with the name " + alias + " already exists.");
 					} else {
-						byte[] key;
-						if(args.hasAbbArg() && args.fetchAbbr().equals('k') || args.hasOptionArg() && args.fetchOption().equals("key")) {
-							if(!args.hasStringArg()) {
-								System.err.println("[StationInterface] No key has been provided although option \"key\" was set.");
-								return;
-							} else {
-								key = args.fetchString().getBytes();
-							}
-						} else {
-							key = new byte[KeyHandler.KEY_SIZE];
-							for(int i = 0; i < KeyHandler.KEY_SIZE; i++) {
-								key[i] = (byte) (Math.random()*Byte.MAX_VALUE);
-							}
-						}
-						DummyConnection dc = new DummyConnection();
-						Connection c1 = new Connection(dc.chA.getInputStream(), dc.chB.getOutputStream());
-						Connection c2 = new Connection(dc.chB.getInputStream(), dc.chA.getOutputStream());
-						s1.getCB().addConnection(c1, key);
-						s2.getCB().addConnection(c2, key);
+						DcServer s = new DcServer(alias);
+						servers.put(alias, s);
+						mapCommand(alias, new CommandAction(new ServerInterface(s)));
 					}
 				}
 			}
 		};
 
-		create = new Action() {
+		createClient = new Action() {
 			@Override
 			public void execute(ArgSet args) {
-				if(!args.hasArg()) {
-					System.out.println("[MultiStationInterface] Please provide a valid command of the form \"(client|c|server|s) <alias>... \"");
-				} else {
-					String type = args.pop();
-					if(type.equals("client") || type.equals("c")) {
-						
-					} else if(type.equals("server") || type.equals("s")) {
-						
-					}
-				}
 				while(args.hasArg()) {
 					String alias = args.pop();
-					if(stations.contains(alias)) {
-						System.out.println("[MultiStationInterface] A station with alias " + alias + " already exists.");
+					if(clients.containsKey(alias) || servers.containsKey(alias)) {
+						System.out.println("[MultiStationInterface] A client or server with the name " + alias + " already exists.");
 					} else {
-						stations.add(alias);
-						setContext(alias, new StationInterface());
+						DcClient c = new DcClient(alias);
+						clients.put(alias, c);
+						mapCommand(alias, new CommandAction(new ClientInterface(c)));
 					}
 				}
 			}
@@ -109,60 +91,51 @@ public class MultiStationInterface extends CLC {
 		setDefaultAction(noSuchStationAction);
 		mapAbbreviation('l', listAction);
 		mapOption("list", listAction);
-		mapOption("connect", connect);
-		mapAbbreviation('c', connect);
+		
 		mapCommand("make", create);
-		mapAbbreviation('m', create);
+		getContext("make").mapCommand("server", createServer);
+		getContext("make").mapCommand("client", createClient);
+
+		mapCommand("keys", new CommandAction(new KeyHandlerInterface()));
 	}
 
 	private DCStation getStation(ArgSet args) {
 		if(!args.hasArg()) return null; 
 
 		String alias = args.pop();
-		if(!stations.contains(alias)) {
-			return null;
+		if(servers.containsKey(alias)) {
+			return servers.get(alias);
+		} else  if(clients.containsKey(alias)) {
+			return clients.get(alias);
 		} else {
-			return ((StationInterface) getContext(alias)).s;
+			return null;
 		}
 	}
-		
-	private class StationInterface extends CLC {
-		private DCStation s;
+
+	private class ServerInterface extends StationInterface {
+		private final DcServer server;
+
+		public ServerInterface(DcServer server) {
+			super(server);
+			this.server = server;
+		}
+	}
+	
+	private class ClientInterface extends StationInterface {
+		private final DcClient client;
+		private Action send, read;
+
 		private int roundCounter;
-				
-		private Action send, close, create, read;
 		
-		public StationInterface() {		
-			s = new DCStation();
-			
-			
-			
-			close = new Action() {
-				@Override
-				public void execute(ArgSet args) {
-					if(s != null) {
-						s.close();
-						s = null;						
-					}
-				}
-			};
-			
-			create = new Action() {
-				@Override
-				public void execute(ArgSet args) {
-					if(s != null) {
-						System.err.println("[StationInterface] There is already a station associated with this alias. Use the \"close\" command to close the existing station.");
-					} else {
-						s = new DCStation();
-					}
-				}
-			};
+		public ClientInterface(DcClient c) {
+			super(c);
+			this.client = c;
 
 			send = new Action() {
 				@Override
 				public void execute(ArgSet args) {
 					boolean block = false;
-					if(s != null) {
+					if(client != null) {
 						if(args.hasAbbArg() && args.fetchAbbr() == 'b' || args.hasOptionArg() && args.fetchOption().equals("block")) {
 							block = true;
 						}
@@ -170,14 +143,14 @@ public class MultiStationInterface extends CLC {
 							String path = args.pop();
 							File f = new File(path);
 							try {
-								InputStream is= new FileInputStream(f);
+								InputStream is = new FileInputStream(f);
 								long byteCount = 0;
-								while( is.available() > 0) {
-									s.send((byte) is.read());									
+								while(is.available() > 0) {
+									client.send((byte) is.read());									
 									byteCount++;
 								}
 								is.close();
-								if(block) s.getCB().block();
+								if(block) client.block();
 								System.out.println("[MultiStationInterface] " + byteCount + " byte(s) have been read from file " + path);
 							} catch (FileNotFoundException e) {
 								System.out.println("[MultiStationInterface] The file at " + path + " was not found. Please provide a valid path to an existing file.");
@@ -190,8 +163,8 @@ public class MultiStationInterface extends CLC {
 							String m = args.fetchString();
 							Debugger.println(2, "Trying to send message " + m);
 							try {	
-								s.send(m);
-								if(block) s.getCB().block();
+								client.send(m);
+								if(block) client.block();
 							} catch (IOException e) {
 								Debugger.println(1, e.toString());
 							}
@@ -205,7 +178,7 @@ public class MultiStationInterface extends CLC {
 			read = new Action() {
 				@Override
 				public void execute(ArgSet args) {
-					if(!s.getCB().canReceive()) {
+					if(!client.canReceive()) {
 						System.out.println("[StationInterface] This station does currently not have any output.");
 					} else {
 						if(args.hasAbbArg() && args.fetchAbbr() == 'f' || args.hasOptionArg() && args.fetchOption().equals("file")) {
@@ -217,8 +190,8 @@ public class MultiStationInterface extends CLC {
 								try {
 									OutputStream os= new FileOutputStream(f, true);
 									long byteCount = 0;
-									while(s.getCB().canReceive()) {
-										byte[] output = s.getCB().receive();
+									while(client.canReceive()) {
+										byte[] output = client.receive();
 										byteCount += output.length;
 										os.write(output);											
 										roundCounter++;
@@ -232,8 +205,8 @@ public class MultiStationInterface extends CLC {
 								}					
 							}
 						} else {
-							while(s.getCB().canReceive()) {
-								byte[] output = s.getCB().receive();
+							while(client.canReceive()) {
+								byte[] output = client.receive();
 								StringBuilder sb = new StringBuilder();
 								for(int k = 0; k < output.length; k++) {
 									sb.append((char) output[k]);
@@ -245,20 +218,111 @@ public class MultiStationInterface extends CLC {
 					}
 				}
 			};
-			
-			teachCommands();
-		}
-		
-		private void teachCommands() {
-			mapCommand("close", close);
-			mapCommand("create", create);
+
 			mapCommand("send", send);
 			mapCommand("read", read);
+		}
+		
+	}
+		
+	private class StationInterface extends CLC {
+		private final DCStation station;
+				
+		private Action close, connect;
+		
+		public StationInterface(DCStation s) {		
+			this.station = s;
+			
+			connect = new Action() {
+				@Override
+				public void execute(ArgSet args) {
+					if(!args.hasArg()) {
+						System.out.println("[MultiStationInterface] Please provide the alias of the server you want to connect to");
+					} else {
+						String serverAlias = args.pop();
+						if(!servers.containsKey(serverAlias)) {
+							System.out.println("[MultiStationInterface] There is no server called " + serverAlias);
+						} else {
+							DcServer server = servers.get(serverAlias);
+							connectTo(server);
+						}
+					}
+				}
+			};
+			
+			close = new Action() {
+				@Override
+				public void execute(ArgSet args) {
+					station.close();
+				}
+			};
+			
+			mapCommand("close", close);
+			mapCommand("connect", connect);
+			
+		}
+
+		private void connectTo(DcServer server) {
+			DummyConnection dc = new DummyConnection();
+			Connection c1 = new Connection(dc.chA.getInputStream(), dc.chB.getOutputStream());
+			Connection c2 = new Connection(dc.chB.getInputStream(), dc.chA.getOutputStream());
+			station.setConnection(c1);
+			server.getCB().addConnection(c2);
 		}
 		
 		protected void onEntering() {
 			
 		}
+
+	}
+
+	private class KeyHandlerInterface extends CLC {
+		private Action addAction;
+		public KeyHandlerInterface() {
+
+
+			addAction = new Action() {
+				@Override
+				public void execute(ArgSet args) {
+					DCStation s1, s2;
+					while(args.hasArg()) {
+						s1 = getStation(args);
+						s2 = getStation(args);
+						if(s1 == null || s2 == null || s1 == s2) {
+							System.err.println("[MultiStationInterface] Please provide two different stations");
+						} else {
+							if(args.hasAbbArg() && args.fetchAbbr().equals('k') || args.hasOptionArg() && args.fetchOption().equals("key")) {
+								if(!args.hasStringArg()) {
+									System.err.println("[StationInterface] No key has been provided although option \"key\" was set.");
+								} else {
+									byte[] key = args.fetchString().getBytes();
+									addKey(s1, s2, key);
+								}
+							} else {
+								addKey(s1, s2);
+							}
+
+						}
+					}
+				}
+			};
+
+			mapCommand("add", addAction);
+		}
+
+		private void addKey(DCStation s1, DCStation s2) {
+			byte[] key = new byte[KeyHandler.KEY_SIZE];
+			for(int i = 0; i < KeyHandler.KEY_SIZE; i++) {
+				key[i] = (byte) (Math.random()*Byte.MAX_VALUE);
+			}
+			addKey(s1, s2, key);
+		}
+
+		private void addKey(DCStation s1, DCStation s2, byte[] key) {
+			s1.getKeyHandler().addKey(s2.getAlias(), key);
+			s2.getKeyHandler().addKey(s1.getAlias(), key);
+		}
+
 
 	}
 

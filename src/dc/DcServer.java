@@ -3,8 +3,8 @@ package dc;
 public class DcServer extends DCStation {
 	private ConnectionBundle cb;
 
-	public DcServer() {
-		super();
+	public DcServer(String alias) {
+		super(alias);
 		cb = new ConnectionBundle();
 		(new Thread(new InputReader())).start();
 	}
