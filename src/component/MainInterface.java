@@ -13,7 +13,7 @@ public class MainInterface extends CLC {
 		Action forwardAction = new CommandAction(msi);
 		
 		setDefaultAction(forwardAction);
-		mapCommand("station", msi);
+		mapCommand("station", forwardAction);
 		
 		
 	}

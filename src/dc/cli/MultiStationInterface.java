@@ -24,7 +24,7 @@ public class MultiStationInterface extends CLC {
 	private HashMap<String, DcServer> servers;
 	private HashMap<String, DcClient> clients;
 
-	private Action listAction, noSuchStationAction, create, createServer, createClient;
+	private Action listAction, noSuchStationAction, create, createServer, createClient, connect;
 
 	public MultiStationInterface() {
 		servers = new HashMap<String, DcServer>();
@@ -45,6 +45,35 @@ public class MultiStationInterface extends CLC {
 			public void execute(ArgSet args) {
 				String s = args.pop();
 				System.out.println("[MultiStationInterface] No command is associated with \"" + s + "\". If you want to create a station with that alias, use \"station make "+s+"\"");
+			}
+		};
+
+		connect = new Action() {
+			@Override
+			public void execute(ArgSet args) {
+				if(!args.hasArg()) {
+					System.out.println("[MultiStationInterface] Please provide the alias of the server you want to connect to, followed by one or more stations.");
+				} else {
+					String serverAlias = args.pop();
+					if(!servers.containsKey(serverAlias)) {
+						System.out.println("[MultiStationInterface] There is no server called " + serverAlias);
+					} else {
+						DcServer server = servers.get(serverAlias);
+						while(args.hasArg()) {
+							String stationAlias  = args.pop();
+							if(servers.containsKey(stationAlias)) {
+								DCStation station = servers.get(stationAlias);
+								connectTo(server, station);
+							} else if(clients.containsKey(stationAlias)) {
+								DCStation station = clients.get(stationAlias);
+								connectTo(server, station);
+							} else {
+								System.out.println("[MultiStationInterface] There is no station called " + stationAlias);
+								return;
+							}
+						}
+					}
+				}
 			}
 		};
 
@@ -91,6 +120,8 @@ public class MultiStationInterface extends CLC {
 		setDefaultAction(noSuchStationAction);
 		mapAbbreviation('l', listAction);
 		mapOption("list", listAction);
+		mapCommand("connect", connect);
+		mapAbbreviation('c', connect);
 		
 		mapCommand("make", create);
 		getContext("make").mapCommand("server", createServer);
@@ -98,6 +129,15 @@ public class MultiStationInterface extends CLC {
 
 		mapCommand("keys", new CommandAction(new KeyHandlerInterface()));
 	}
+
+	private void connectTo(DcServer server, DCStation station) {
+		DummyConnection dc = new DummyConnection();
+		Connection c1 = new Connection(dc.chA.getInputStream(), dc.chB.getOutputStream());
+		Connection c2 = new Connection(dc.chB.getInputStream(), dc.chA.getOutputStream());
+		station.setConnection(c1);
+		server.getCB().addConnection(c2);
+	}
+	
 
 	private DCStation getStation(ArgSet args) {
 		if(!args.hasArg()) return null; 
@@ -244,7 +284,7 @@ public class MultiStationInterface extends CLC {
 							System.out.println("[MultiStationInterface] There is no server called " + serverAlias);
 						} else {
 							DcServer server = servers.get(serverAlias);
-							connectTo(server);
+							connectTo(server, station);
 						}
 					}
 				}
@@ -262,13 +302,6 @@ public class MultiStationInterface extends CLC {
 			
 		}
 
-		private void connectTo(DcServer server) {
-			DummyConnection dc = new DummyConnection();
-			Connection c1 = new Connection(dc.chA.getInputStream(), dc.chB.getOutputStream());
-			Connection c2 = new Connection(dc.chB.getInputStream(), dc.chA.getOutputStream());
-			station.setConnection(c1);
-			server.getCB().addConnection(c2);
-		}
 		
 		protected void onEntering() {
 			
