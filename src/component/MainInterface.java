@@ -10,8 +10,11 @@ public class MainInterface extends CLC {
 	public MainInterface() {
 		System.out.println("DCnet command line interface, v" + DCConfig.VERSION);
 		msi = new MultiStationInterface();
-
-		mapCommand("station", new CommandAction(msi));
+		Action forwardAction = new CommandAction(msi);
+		
+		setDefaultAction(forwardAction);
+		mapCommand("station", msi);
+		
 		
 	}
 
