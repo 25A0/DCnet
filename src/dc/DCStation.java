@@ -21,7 +21,7 @@ public abstract class DCStation {
 	
 	public DCStation(String alias) {
 		this.alias = alias;
-		kh = new KeyHandler();
+		kh = new KeyHandler(alias);
 		connectionSemaphore = new Semaphore(0);
 		(new Thread(new InputReader())).start();
 		Debugger.println(2, "[DCStation] Station " + alias + " started");

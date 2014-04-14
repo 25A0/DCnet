@@ -329,10 +329,12 @@ public class MultiStationInterface extends CLC {
 									System.err.println("[StationInterface] No key has been provided although option \"key\" was set.");
 								} else {
 									byte[] key = args.fetchString().getBytes();
-									addKey(s1, s2, key);
+									s1.getKeyHandler().addKey(s2.getAlias(), key);
+									s2.getKeyHandler().addKey(s1.getAlias(), key);
 								}
 							} else {
-								addKey(s1, s2);
+								s1.getKeyHandler().addKey(s2.getAlias());
+								s2.getKeyHandler().addKey(s1.getAlias());
 							}
 
 						}
@@ -342,21 +344,6 @@ public class MultiStationInterface extends CLC {
 
 			mapCommand("add", addAction);
 		}
-
-		private void addKey(DCStation s1, DCStation s2) {
-			byte[] key = new byte[KeyHandler.KEY_SIZE];
-			for(int i = 0; i < KeyHandler.KEY_SIZE; i++) {
-				key[i] = (byte) (Math.random()*Byte.MAX_VALUE);
-			}
-			addKey(s1, s2, key);
-		}
-
-		private void addKey(DCStation s1, DCStation s2, byte[] key) {
-			s1.getKeyHandler().addKey(s2.getAlias(), key);
-			s2.getKeyHandler().addKey(s1.getAlias(), key);
-		}
-
-
 	}
 
 }
