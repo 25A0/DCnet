@@ -142,7 +142,9 @@ public class CLC {
 	 * @param args The set of arguments.
 	 */
 	public final void handle(ArgSet args) {
-		if(args.peek().isEmpty()) {
+		if(args.isComment()) {
+			return;
+		} else if(args.peek().isEmpty()) {
 			// In this case no other arguments are given, so execute the root action
 			// of this comtroller
 			rootAction.execute(args);

@@ -16,7 +16,7 @@ public class ArgSet {
 	 * Initializes the ArgSet with an empty String.
 	 */
 	public ArgSet() {
-		new ArgSet("");
+		this("");
 	}
 
 	/**
@@ -208,6 +208,10 @@ public class ArgSet {
 		} else {
 			return s.length() == 2 && s.charAt(0) == '-' && Character.isLetter(s.charAt(1));
 		} 
+	}
+
+	public boolean isComment() {
+		return arg.length() > 0 && arg.charAt(0) == '#';
 	}
 
 }
