@@ -112,6 +112,19 @@ public class CLI {
 
 				}
 			};
+
+			Action echoAction = new Action() {
+				@Override
+				public void execute(ArgSet args) {
+					if(args.hasStringArg()) {
+						System.out.println(args.fetchString());
+					} else if(args.hasArg()) {
+						System.out.println(args.pop());
+					} else {
+						System.out.println("[CommandLineInterface] the command \"echo\" requires an argument enclosed by quotation marks");
+					}
+				}
+			};
 			
 			Action innerAction = new CommandAction(innerController);
 			
@@ -119,7 +132,8 @@ public class CLI {
 			mapAbbreviation('d', debugAction);
 			mapOption("debug", debugAction);
 			mapAbbreviation('r', scriptAction);
-			mapOption("run", scriptAction);
+			mapCommand("run", scriptAction);
+			mapCommand("echo", echoAction);
 			setDefaultAction(innerAction);
 		}
 	}
