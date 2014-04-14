@@ -136,9 +136,9 @@ public class MultiStationInterface extends CLC {
 				public void execute(ArgSet args) {
 					boolean block = false;
 					if(client != null) {
-						if(args.hasAbbArg() && args.fetchAbbr() == 'b' || args.hasOptionArg() && args.fetchOption().equals("block")) {
-							block = true;
-						}
+						// if(args.hasAbbArg() && args.fetchAbbr() == 'b' || args.hasOptionArg() && args.fetchOption().equals("block")) {
+						// 	block = true;
+						// }
 						if(args.hasAbbArg() && args.fetchAbbr() == 'f' || args.hasOptionArg() && args.fetchOption().equals("file")) {
 							String path = args.pop();
 							File f = new File(path);
