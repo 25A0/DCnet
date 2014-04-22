@@ -14,17 +14,19 @@ import java.util.LinkedList;
 
 public class ConnectionBundle {
 	private final ArrayList<ConnectionHandler> chl;
-	private int remaining, connections;
-	private byte[] currentInput;
+	private int connections;
 
 	private boolean isClosed = false;
 	private final Semaphore inputAvailable;
-	private final LinkedList<byte[]> inputBuffer;
+	private final LinkedList<DCPackage> inputBuffer;
+	private final DCPackage[] pendingPackages;
+	private final int[] remaining;
 	
 	/**
 	 * This Semaphore is used to protect fields that are sensible in terms of concurrency
 	 */
 	private final Semaphore accessSemaphore;
+
 	
 	public ConnectionBundle() {
 		chl = new ArrayList<ConnectionHandler>();
@@ -34,17 +36,18 @@ public class ConnectionBundle {
 		 */
 		accessSemaphore = new Semaphore(1);
 
-		inputBuffer = new LinkedList<byte[]>();
+		inputBuffer = new LinkedList<DCPackage>();
 		inputAvailable = new Semaphore(0);
 		
-		currentInput = new byte[DCPackage.PAYLOAD_SIZE];
-
 		connections = 0;
-		remaining = 0;
+		
+		remaining = new int[DCConfig.NUM_ROUNDS_AT_A_TIME];
+		pendingPackages = new DCPackage[DCConfig.NUM_ROUNDS_AT_A_TIME];
 	}
 	
 	public void addConnection(Connection c) {
 		Debugger.println(2, "[ConnectionBundle] New connection to " + c.toString());
+		
 		accessSemaphore.acquireUninterruptibly();
 			ConnectionHandler ch = new ConnectionHandler(c);
 			chl.add(ch);
@@ -62,7 +65,7 @@ public class ConnectionBundle {
 		accessSemaphore.release();
 	}
 	
-	public void broadcast(byte[] message) {
+	public void broadcast(DCPackage message) {
 		for(ConnectionHandler ch: chl) {
 			try{
 				ch.c.send(message);
@@ -88,43 +91,37 @@ public class ConnectionBundle {
 		}
 	}
 	
-	public byte[] receive() {
+	public DCPackage receive() {
 		inputAvailable.acquireUninterruptibly();
 		return inputBuffer.pop();
-	}
-
-	private void reset() {
-		currentInput = new byte[DCPackage.PAYLOAD_SIZE];
-
-		// We need to read connections outputs before this round is complete
-		// i.e.: we have to receive a message from each station that we're connected
-		// to
-		remaining = connections;
 	}
 
 	/**
 	 * Adds bytes to the input of the current round.
 	 * @param input The input to be added
 	 */
-	private void addInput(byte[] input) {
-		if(input.length != currentInput.length) {
-			throw new InputMismatchException("[ConnectionBundle] The current input has length " + currentInput.length + " but the provided input has length " + input.length + ".");
+	private void addInput(DCPackage input) {
+		if(input.getPayload().length != DCPackage.PAYLOAD_SIZE) {
+			throw new InputMismatchException("The provided input has length " + input.getPayload().length + " but should be " + DCPackage.PAYLOAD_SIZE);
 		} else {
-			for(int i = 0; i < currentInput.length; i++) {
-				currentInput[i] ^= input[i];
+			int round = input.getNumber();
+			if(pendingPackages[round] == null) {
+				pendingPackages[round] = input;
+			} else {
+				pendingPackages[round].combine(input);
 			}
-			remaining--;
+			remaining[round]--;
 			Debugger.println(2, "[ConnectionBundle] Remaining messages: " + remaining);
-			if(remaining == 0) {
-				Debugger.println(2, "[ConnectionBundle] Composed input: " + Arrays.toString(currentInput));
-				inputBuffer.add(currentInput);
+			if(remaining[round] == 0) {
+				Debugger.println(2, "[ConnectionBundle] Composed input: " + pendingPackages[round].toString());
+				inputBuffer.add(pendingPackages[round]);
 				inputAvailable.release();
 				
-				reset();
+				pendingPackages[round] = null;
+				remaining[round] = connections;
 			}
 		}
 	}
-
 
 	private class ConnectionHandler implements Runnable {
 		private boolean isClosed = false;
@@ -141,7 +138,7 @@ public class ConnectionBundle {
 		@Override
 		public void run() {
 			while(!isClosed) {
-				byte[] input = new byte[DCPackage.PAYLOAD_SIZE];
+				DCPackage input;
 				try {
 					input = c.receiveMessage();
 					accessSemaphore.acquireUninterruptibly();

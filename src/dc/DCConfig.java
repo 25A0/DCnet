@@ -8,4 +8,6 @@ public class DCConfig {
 	// So, a value of 2 means that a station has to share keys with to 2 other stations, leading to networks
 	// of a minimum size of 3.
 	public static final int MIN_NUM_KEYS = 2;
+	
+	public static final int NUM_ROUNDS_AT_A_TIME = 8;
 }

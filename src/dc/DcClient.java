@@ -1,7 +1,12 @@
 package dc;
 
+<<<<<<< HEAD
 import java.util.InputMismatchException;
+=======
+import java.util.HashMap;
+>>>>>>> Package header basics
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.concurrent.Semaphore;
 
 import dc.DCPackage;
@@ -18,6 +23,7 @@ public class DcClient extends DCStation{
 	 * can be read.
 	 */
 	private final Semaphore inputAvailable;
+
 	private final LinkedList<byte[]> inputBuffer;
 	private Scheduler scheduler;
 
@@ -91,9 +97,11 @@ public class DcClient extends DCStation{
 	}
 
 	@Override
-	protected void addInput(byte[] message) {
+	protected void addInput(DCPackage message) {
 		try {
-			byte[] inputPayload = Padding10.revert10padding(message);
+			byte[] inputPayload = Padding10.revert10padding(messag.getPayload());
+			byte number = message.getNumber();
+			// currentRound = ++number % message.get
 			if(inputPayload != null) {
 				// We compare 'message' rather than 'inputPayload' since
 				// the pending message includes padding.
@@ -122,9 +130,8 @@ public class DcClient extends DCStation{
 		@Override
 		public void run() {
 			while(!isClosed) {
-				Debugger.println(2, "[DcClient "+alias+"] Waiting for connectionSemaphore");
 				connectionSemaphore.acquireUninterruptibly();
-				Debugger.println(2, "[DcClient "+alias+"] ConnectionSemaphore acquired");
+				windowSemaphore.acquireUninterruptibly();				
 				try{
 					Thread.sleep(WAIT_TIME);
 				} catch (InterruptedException e) {
@@ -149,7 +156,10 @@ public class DcClient extends DCStation{
 					Debugger.println(2, "[DcClient "+alias+"] Sending output " + Arrays.toString(output));
 					
 				}
-				broadcast(output);
+				broadcast(new DCPackage(nextOutRoundIndex, output));
+				nextOutRoundIndex++;
+				nextOutRoundIndex %= DCConfig.NUM_ROUNDS_AT_A_TIME;
+				
 				connectionSemaphore.release();
 				// Wait until a new round can be started
 				roundCompletionSemaphore.acquireUninterruptibly();

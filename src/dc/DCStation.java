@@ -16,9 +16,10 @@ public abstract class DCStation {
 	protected final KeyHandler kh;
 	
 	protected boolean isClosed = false;
-
-	protected final Semaphore connectionSemaphore;
 	
+	
+	protected final Semaphore connectionSemaphore;
+
 	public DCStation(String alias) {
 		this.alias = alias;
 		kh = new KeyHandler(alias);
@@ -31,7 +32,7 @@ public abstract class DCStation {
 		return alias;
 	}
 
-	protected void broadcast(byte[] output) {	
+	protected void broadcast(DCPackage output) {	
 		try{
 			c.send(output);
 			
@@ -59,7 +60,7 @@ public abstract class DCStation {
 		return kh;
 	}
 
-	protected abstract void addInput(byte[] input);
+	protected abstract void addInput(DCPackage input);
 
 	/**
 	 * This Runnable will constantly read incoming messages
@@ -71,9 +72,8 @@ public abstract class DCStation {
 		public void run() {
 			while(!isClosed) {
 				connectionSemaphore.acquireUninterruptibly();
-				byte[] input = new byte[DCPackage.PAYLOAD_SIZE];
 				try {
-					input = c.receiveMessage();
+					DCPackage input = c.receiveMessage();
 					addInput(input);
 				} catch (IOException e) {
 					Debugger.println(1, e.getMessage());
