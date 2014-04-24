@@ -25,6 +25,9 @@
 //  POSSIBILITY OF SUCH DAMAGE.
 //
 
+// Modified 2014 by Moritz Neikes:
+// 	* moved the constant sigma array from xsalsa20 to this class for convenience 
+
 package com.neilalexander.jnacl.crypto;
 
 public class salsa20
@@ -36,6 +39,12 @@ public class salsa20
 	final int crypto_stream_salsa20_ref_KEYBYTES = 32;
 	final int crypto_stream_salsa20_ref_NONCEBYTES = 8;
 
+	public final static byte[] sigma = {(byte) 'e', (byte) 'x', (byte) 'p', (byte) 'a',
+		  (byte) 'n', (byte) 'd', (byte) ' ', (byte) '3',
+		  (byte) '2', (byte) '-', (byte) 'b', (byte) 'y',
+		  (byte) 't', (byte) 'e', (byte) ' ', (byte) 'k'}; 
+
+	
 	final static int ROUNDS = 20;
 
 	static long rotate(int u, int c)
@@ -155,6 +164,15 @@ public class salsa20
 		return 0;
 	}
 	
+	/**
+	 * Produces a keystream from a nonce and key
+	 * @param  c       Output
+	 * @param  clen    length of output
+	 * @param  n       Nonce (8 byte) (has to be the same for both stations, different nonce for each stream iteration)
+	 * @param  noffset 0
+	 * @param  k       Key
+	 * @return         [description]
+	 */
 	public static int crypto_stream(byte[] c, int clen, byte[] n, int noffset, byte[] k)
 	{
 		byte[] inv = new byte[16];
@@ -173,7 +191,7 @@ public class salsa20
 
 		while (clen >= 64)
 		{		
-			salsa20.crypto_core(c, inv, k, xsalsa20.sigma);
+			salsa20.crypto_core(c, inv, k, sigma);
 
 			int u = 1;
 			
@@ -190,7 +208,7 @@ public class salsa20
 
 		if (clen != 0)
 		{			
-			salsa20.crypto_core(block, inv, k, xsalsa20.sigma);
+			salsa20.crypto_core(block, inv, k, sigma);
 			
 			for (int i = 0; i < clen; ++i)
 				c[coffset + i] = block[i];
@@ -218,7 +236,7 @@ public class salsa20
 
 		while (mlen >= 64)
 		{			
-			salsa20.crypto_core(block, inv, k, xsalsa20.sigma);
+			salsa20.crypto_core(block, inv, k, sigma);
 			
 			for (int i = 0; i < 64; ++i)
 				c[coffset + i] = (byte)(m[moffset + i] ^ block[i]);
@@ -239,7 +257,7 @@ public class salsa20
 
 		if (mlen != 0)
 		{
-			salsa20.crypto_core(block, inv, k, xsalsa20.sigma);
+			salsa20.crypto_core(block, inv, k, sigma);
 			
 			for (int i = 0; i < mlen; ++i)
 				c[coffset + i] = (byte)(m[moffset + i] ^ block[i]);
