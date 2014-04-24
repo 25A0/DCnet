@@ -46,6 +46,9 @@ public class DCPackage {
 			throw new InputMismatchException("The size of the raw byte input is " + raw.length+" and does not match the expected package size " + PACKAGE_SIZE);
 		} else {
 			byte number = raw[0];
+			if(number < 0 || number > DCConfig.NUM_ROUNDS_AT_A_TIME) {
+				throw new InputMismatchException("The round number " + number + " is out of bounds");
+			}
 			byte[] payload = new byte[PAYLOAD_SIZE];
 			int payloadOffset = HEADER_SIZE;
 			for(int i = 0; i < PAYLOAD_SIZE; i++) {

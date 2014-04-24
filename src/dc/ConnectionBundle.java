@@ -18,10 +18,11 @@ public class ConnectionBundle {
 
 	private boolean isClosed = false;
 	private final Semaphore inputAvailable;
+
 	private final LinkedList<DCPackage> inputBuffer;
-	private final DCPackage[] pendingPackages;
-	private final int[] remaining;
-	
+	private PackageWindow window;
+		
+
 	/**
 	 * This Semaphore is used to protect fields that are sensible in terms of concurrency
 	 */
@@ -40,9 +41,7 @@ public class ConnectionBundle {
 		inputAvailable = new Semaphore(0);
 		
 		connections = 0;
-		
-		remaining = new int[DCConfig.NUM_ROUNDS_AT_A_TIME];
-		pendingPackages = new DCPackage[DCConfig.NUM_ROUNDS_AT_A_TIME];
+		window = new PackageWindow(DCConfig.NUM_ROUNDS_AT_A_TIME);
 	}
 	
 	public void addConnection(Connection c) {
@@ -123,6 +122,21 @@ public class ConnectionBundle {
 		}
 	}
 
+	/**
+	 * Checks whether a given number is in between two included bounds, in modulo {@code n}
+	 * @param  a The lower bound
+	 * @param  b The upper bound
+	 * @param  x The number to be tested
+	 * @param  n modulo
+	 * @return   if {@code x} is in between {@code [a, b]} in modulo {@code n}
+	 */
+	private boolean inBetweenMod(int a, int b, int x, int n) {
+		if(b < a) b += n;
+		if(x < a) x += n;
+		return a <= x && x <= b;
+	}
+
+
 	private class ConnectionHandler implements Runnable {
 		private boolean isClosed = false;
 		public final Connection c;
@@ -149,5 +163,54 @@ public class ConnectionBundle {
 				}
 			}
 		}
+	}
+
+	private class PackageWindow {
+		private final DCPackage[] pendingPackages;
+		private final int[] remaining;
+		private final int size;
+
+		private int windowStart, windowEnd;
+		private boolean isEmpty;
+
+		public PackageWindow(int size) {
+			this.size = size;
+			isEmpty = true;
+			remaining = new int[size];
+			pendingPackages = new DCPackage[size];
+		}
+
+		public boolean isFull() {
+			return (windowEnd + 1)%size == windowStart;
+		}
+
+		public boolean isEmpty() {
+			return isEmpty;
+		}
+
+		public void add(DCPackage p) {
+			if(isFull) {
+				throw new IllegalStateException("Trying to add a packet to a full window");
+			}
+
+			if(isEmpty) {
+				windowStart = windowEnd = p.getNumber();
+			} else {
+				shiftWindowEnd();
+			}
+
+			
+		}
+
+		private void shiftWindowStart() {
+
+		}
+
+		private void shiftWindowEnd() {
+			
+		}
+
+
+
 	}
 }

@@ -26,7 +26,6 @@ public class DcClient extends DCStation{
 
 	private final LinkedList<byte[]> inputBuffer;
 	private Scheduler scheduler;
-
 	private int currentRound, nextRound;
 	
 	public static final long WAIT_TIME = 5000;
