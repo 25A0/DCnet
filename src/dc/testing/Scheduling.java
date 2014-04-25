@@ -65,7 +65,7 @@ public class Scheduling {
 				}
 				succeeded = true;
 			} else {
-				requiredRounds = -1;
+				requiredRounds = round + 1;
 				succeeded = false;
 			}
 		}
@@ -79,14 +79,18 @@ public class Scheduling {
 	}
 
 	private int choose(byte[] schedule, int lastChoice, byte fingerprint, boolean lastRound) {
-		if(lastChoice != -1 && schedule[lastChoice] == fingerprint) {
+		// A client that is already in withdrawed state will not
+		// attempt to re-enter the scheduling
+		if(lastChoice == -1) {
+			return -1;
+		} else if(schedule[lastChoice] == fingerprint) {
 			// If there's no collision, we just stay in this slot
 			return lastChoice;
 		} else if(lastRound) {
 			// There was a collision and there's no time left to try more things
 			return -1;
 		} else {
-			// There was a collision or we withdrawed our reservation earlier
+			// There was a collision
 			// 
 			// Determine the free slots
 			int numFree = 0;
@@ -101,9 +105,6 @@ public class Scheduling {
 			if(r.nextDouble() < 0.5d) {
 				// 50% chance that we stay, in the hope that others move away from
 				// our slot, otherwise we withdraw.
-				// 
-				// A client that is already in withdrawed state will not
-				// attempt to re-enter the scheduling
 				if(numFree == 0) {
 					return -1;
 				} else {

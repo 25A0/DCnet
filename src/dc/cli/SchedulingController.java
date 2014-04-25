@@ -25,6 +25,7 @@ public class SchedulingController extends CLC {
 
 		Action benchmarkAction = new Action() {
 			private int maxClients, numSlots, numBits, samples;
+			private final int factor = 100;
 
 			@Override
 			public void execute(ArgSet args) {
@@ -32,7 +33,7 @@ public class SchedulingController extends CLC {
 				maxClients = args.fetchInteger();
 				numSlots = args.fetchInteger();
 				numBits = args.fetchInteger();
-				samples = maxClients / 10;
+				samples = maxClients / factor;
 				int clients[][] = new int[avgs][samples];
 				int succeeded[][] = new int[avgs][samples];
 				int requiredRounds[][] = new int[avgs][samples];
@@ -50,11 +51,11 @@ public class SchedulingController extends CLC {
 
 			private void benchmark(int[] clients, int[] succeeded, int[] requiredRounds, int[] emptySlots) {
 				System.out.print("Benchmarking ");
-				for(int i = numSlots/10; i < samples; i++) {
-					Scheduling s = new Scheduling(i*10, numSlots, numBits);
+				for(int i = 1 + numSlots/factor; i < samples; i++) {
+					Scheduling s = new Scheduling(i*factor, numSlots, numBits);
 					s.schedule();
-					clients[i] = i*10;
-					succeeded[i] = s.succeeded? numSlots : 0;
+					clients[i] = i*factor;
+					succeeded[i] = s.succeeded? 1 : 0;
 					requiredRounds[i] = s.requiredRounds;
 					emptySlots[i] = s.emptySlots;
 					System.out.print(".");
