@@ -7,13 +7,15 @@ import java.security.NoSuchAlgorithmException;
 
 import com.neilalexander.jnacl.crypto.salsa20;
 
+import com.neilalexander.jnacl.crypto.salsa20;
+
 import dc.DCPackage;
 import cli.Debugger;
 
 public class KeyHandler {
 	private static MessageDigest md;
 	private static final String HASH_ALG = "SHA-256";
-	public static final int KEY_SIZE = 1024;
+	public static final int KEY_SIZE = 32;
 	// Nonce size must not be larger than key size.
 	public static final int NONCE_SIZE = 8;
 	
@@ -86,7 +88,7 @@ public class KeyHandler {
 				knp.encrypt(keyMix);
 			}	
 		}
-		// Debugger.println(1, Arrays.toString(keyMix));
+		Debugger.println(2, "[KeyHandler] Station "+ alias+ " has keyMix: " + Arrays.toString(keyMix));
 		return keyMix;
 	}
 
@@ -130,13 +132,20 @@ public class KeyHandler {
 		}
 
 		public byte[] encrypt(byte[] input) {
-			System.out.println("Lenght of input: " + input.length);
-			byte[] keystream = new byte[input.length];
-			salsa20.crypto_stream(keystream, input.length, nonce, 0, key);
-			for(int i = 0; i < input.length; i++) {
-				input[i] ^= keystream[i];
+			int kl = key.length, il = input.length;
+			int iterations = il / kl;
+			if(il % kl > 0) iterations++;
+			for(int i = 0; i < iterations; i++) {
+				byte[] keystream = new byte[kl];
+				salsa20.crypto_stream(keystream, kl, nonce, 0, key);
+				int lim = (i+1) * kl;
+				// In the last iteration, the input length is our limit
+				if(lim > il) lim = il;
+				for(int n = i * kl; n < lim; n++) {
+					input[n] ^= keystream[n % kl];
+				}
+				nextNonce();				
 			}
-			nextNonce();
 			return input;
 		}
 
