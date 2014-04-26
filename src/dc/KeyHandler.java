@@ -5,6 +5,10 @@ import java.util.HashMap;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import com.neilalexander.jnacl.crypto.salsa20;
+
+import com.neilalexander.jnacl.crypto.salsa20;
+
 import dc.DCPackage;
 import cli.Debugger;
 
@@ -12,10 +16,11 @@ public class KeyHandler {
 	private static MessageDigest md;
 	private static final String HASH_ALG = "SHA-256";
 	public static final int KEY_SIZE = 32;
+	// Nonce size must not be larger than key size.
+	public static final int NONCE_SIZE = 8;
 	
-	private HashMap<String, byte[]> keys;
-	private byte[] currentKeyMix;
-
+	private HashMap<String, KeyNoncePair> keychain;
+	
 	private final String alias;
 
 	private int numKeys;
@@ -33,9 +38,7 @@ public class KeyHandler {
 	
 	public KeyHandler(String alias) {
 		this.alias = alias;
-		keys = new HashMap<String, byte[]>();
-		currentKeyMix = new byte[KEY_SIZE];
-		Arrays.fill(currentKeyMix, (byte) 0);
+		keychain = new HashMap<String, KeyNoncePair>();
 	}
 
 	public void addKey(String foreignAlias)  {
@@ -50,47 +53,47 @@ public class KeyHandler {
 			System.err.println("[KeyHandler] Severe: The provided key has length " + key.length + " but it has to be of length " + KEY_SIZE + ".");
 		} else {
 			Debugger.println(2, "[KeyHandler] Adding key " + Arrays.toString(key) + " for station " + c + " to keychain.");
-			synchronized(keys) {
-				keys.put(c, key);
+			synchronized(keychain) {
+				KeyNoncePair knp = new KeyNoncePair(key);
+				keychain.put(c, knp);
 				numKeys++;
-				
-				synchronized(currentKeyMix) {
-					for(int i = 0; i < KEY_SIZE; i++) {
-						currentKeyMix[i] ^= key[i];
-					}
-				}
 			}			
 		}
 	}
 	
 	public void removeKey(String c) {
-		synchronized(keys) {
-			byte[] oldKey = keys.remove(c);
+		synchronized(keychain) {
+			keychain.remove(c);
 			numKeys--;
-			synchronized(currentKeyMix) {
-				for(int i = 0; i < KEY_SIZE; i++) {
-					currentKeyMix[i] ^= oldKey[i];
-				}
-			}
 		}
 	}
 	
-	public byte[] getOutput() {
-		return currentKeyMix;		
+	public byte[] getOutput(int length) {
+		return nextKeyMix(length);		
 	}
 	
 	public byte[] getOutput(byte[] message) {
 		byte[] output = new byte[message.length];
-		synchronized(currentKeyMix) {
-			for(int i = 0; i < message.length; i++) {
-				output[i] = (byte) (message[i] ^ currentKeyMix[i % currentKeyMix.length]);
-			}
+		byte[] currentKeyMix = nextKeyMix(message.length);
+		for(int i = 0; i < message.length; i++) {
+			output[i] = (byte) (message[i] ^ currentKeyMix[i % currentKeyMix.length]);
 		}
 		return output;
 	}
 
+	private byte[] nextKeyMix(int length) {
+		byte[] keyMix = new byte[length];
+		synchronized(keychain) {
+			for(KeyNoncePair knp: keychain.values()) {
+				knp.encrypt(keyMix);
+			}	
+		}
+		Debugger.println(2, "[KeyHandler] Station "+ alias+ " has keyMix: " + Arrays.toString(keyMix));
+		return keyMix;
+	}
+
 	public boolean approved() {
-		synchronized(keys) {
+		synchronized(keychain) {
 			return numKeys >= DCConfig.MIN_NUM_KEYS;
 		}
 	}
@@ -113,5 +116,49 @@ public class KeyHandler {
 			}
 		}
 		return s1 + s2;
+	}
+
+	private class KeyNoncePair {
+		private final byte[] key;
+		private final byte[] nonce;
+
+		public KeyNoncePair(byte[] key) {
+			byte[] nonce = new byte[NONCE_SIZE];
+			for(int i = 0; i < NONCE_SIZE; i++) {
+				nonce[i] = key[i];
+			}
+			this.key = key;
+			this.nonce = nonce;
+		}
+
+		public byte[] encrypt(byte[] input) {
+			int kl = key.length, il = input.length;
+			int iterations = il / kl;
+			if(il % kl > 0) iterations++;
+			for(int i = 0; i < iterations; i++) {
+				byte[] keystream = new byte[kl];
+				salsa20.crypto_stream(keystream, kl, nonce, 0, key);
+				int lim = (i+1) * kl;
+				// In the last iteration, the input length is our limit
+				if(lim > il) lim = il;
+				for(int n = i * kl; n < lim; n++) {
+					input[n] ^= keystream[n % kl];
+				}
+				nextNonce();				
+			}
+			return input;
+		}
+
+		private void nextNonce() {
+			for(int i = 0; i < NONCE_SIZE; i++) {
+				byte b = nonce[i];
+				if(b == Byte.MAX_VALUE) {
+					nonce[i] = Byte.MIN_VALUE;
+				} else {
+					nonce[i] = ++b;
+					return;
+				}
+			}
+		}
 	}
 }

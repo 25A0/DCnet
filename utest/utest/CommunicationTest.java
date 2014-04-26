@@ -13,27 +13,6 @@ import dc.testing.DummyConnection;
 
 public class CommunicationTest {
 
-	@Test
-	public void testMessages() {
-		String s = "testString";
-		byte[] bb = s.getBytes();
-		DCPackage m = DCPackage.getMessage(bb);
-		assertArrayEquals(bb, m.toByteArray());
-		
-	}
-	
-	@Test
-	public void testDummyCommunication() throws IOException {
-		DummyConnection dc = new DummyConnection();
-		InputStream is = dc.getInputStream();
-		OutputStream os = dc.getOutputStream();
-		int i = 42;
-		os.write(i);
-		os.write(i+1);
-		int o = is.read();
-		assertTrue(i == o);
-		o = is.read();
-		assertTrue(i + 1 == o);
-	}
+
 
 }
