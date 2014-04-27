@@ -1,5 +1,6 @@
 package dc;
 
+import java.util.InputMismatchException;
 import java.util.LinkedList;
 import java.util.concurrent.Semaphore;
 
@@ -18,6 +19,8 @@ public class DcClient extends DCStation{
 	 */
 	private final Semaphore inputAvailable;
 	private final LinkedList<byte[]> inputBuffer;
+	
+	public static final long WAIT_TIME = 5000;
 	
 	
 	/**
@@ -75,13 +78,26 @@ public class DcClient extends DCStation{
 
 	@Override
 	protected void addInput(byte[] message) {
-		byte[] inputPayload = Padding10.revert10padding(message);
-		// Only add input if the input wasn't empty
-		if(inputPayload != null) {
-			inputBuffer.add(inputPayload);
-			inputAvailable.release();
-		}
-		// But announce the end of the round anyways.
+		try {
+			byte[] inputPayload = Padding10.revert10padding(message);
+			if(inputPayload != null) {
+				// We compare 'message' rather than 'inputPayload' since
+				// the pending message includes padding.
+				if(mb.hasPendingMessage()) {
+					if(!mb.compareMessage(message)) {
+						// TODO: report collision to statistics tracker.
+						System.out.println("[DcClient "+alias+"] Collision detected");
+					} else {
+						mb.confirmMessage();
+					}
+				}
+				inputBuffer.add(inputPayload);
+				inputAvailable.release();
+			}
+		} catch(InputMismatchException e) {
+			// TODO: report malformed message to statistics tracker
+		} 
+		// Announce the end of the round no matter what.
 		roundCompletionSemaphore.release();	
 	}
 
@@ -96,7 +112,7 @@ public class DcClient extends DCStation{
 				connectionSemaphore.acquireUninterruptibly();
 				Debugger.println(2, "[DcClient "+alias+"] ConnectionSemaphore acquired");
 				try{
-					Thread.sleep(1000);
+					Thread.sleep(WAIT_TIME);
 				} catch (InterruptedException e) {
 					// ignore
 				}
