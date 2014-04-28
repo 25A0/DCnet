@@ -19,6 +19,9 @@ public class DcClient extends DCStation{
 	 */
 	private final Semaphore inputAvailable;
 	private final LinkedList<byte[]> inputBuffer;
+	private Scheduler scheduler;
+
+	private int currentRound, nextRound;
 	
 	public static final long WAIT_TIME = 5000;
 	
@@ -43,10 +46,21 @@ public class DcClient extends DCStation{
 		inputAvailable = new Semaphore(0);
 		inputBuffer = new LinkedList<byte[]>();
 		mb = new MessageBuffer();
+
+		scheduler = new PrimitiveScheduler();
+		// We initially don't know the current round of the network
+		// therefore this is initialized to a sentinel value
+		currentRound = -1;
+		// -1 is the sentinel value for 'no round is scheduled for us'
+		nextRound = -1;
 		
 		// Start up the round initializer
 		(new Thread(new RoundInitializer())).start();
 		
+	}
+
+	public void setScheduler(Scheduler s) {
+		this.scheduler = s;
 	}
 
 	public void send(String s) throws IOException {
