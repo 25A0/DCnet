@@ -8,15 +8,16 @@ public class DCPackage {
 	private byte[] header;
 	private byte[] payload;
 
-	// NYI
-	// private static final int ENTERING = 0, LEAVING = 1;
-
 	// The size of the whole package, in bytes
 	public static final int PACKAGE_SIZE = 1024;
 	// The number of bytes that make up the header of the package
 	public static final int HEADER_SIZE = 1;
+	// The number of bits used to represent the round number
+	public static final int NUMBER_SIZE = 4;
 	// The size of the payload, in bytes
-	public static final int PAYLOAD_SIZE = PACKAGE_SIZE - HEADER_SIZE;
+	public final int PAYLOAD_SIZE;
+
+	private final int round;
 
 	/**
 	 * Creates a new DCPackage for a specific round
@@ -24,12 +25,16 @@ public class DCPackage {
 	 * @param  payload                The payload of this package
 	 * @throws InputMismatchException If the payload size does not match the expected size
 	 */
-	public DCPackage(byte number, byte[] payload) throws InputMismatchException {
+	public DCPackage(int number, byte[] payload) throws InputMismatchException {
+		PAYLOAD_SIZE = PACKAGE_SIZE - HEADER_SIZE;
 		if(payload.length > PAYLOAD_SIZE) {
-			System.err.println("[DCPackage] Severe: Rejecting input " + 
-				String.valueOf(payload) + " since it is too much for a single message.");
+			System.err.println("[DCPackage] Severe: Rejecting input " + String.valueOf(payload) + " since it is too much for a single message.");
 			throw new InputMismatchException("Payload size exceeds bounds: Payload size is " + payload.length + " and must at most be " + PAYLOAD_SIZE);
+		} else if(number > (1 << NUMBER_SIZE)) {
+			throw new InputMismatchException("The round number exceeds the bounds of this package format.")
+		}
 		} else {
+			this.round = number;
 			this.payload = payload;
 			this.header = makeHeader(number);
 		}
@@ -78,6 +83,13 @@ public class DCPackage {
 
 	public byte getNumber() {
 		return header[0];
+	}
+
+	/**
+	 * Returns the range limit of the round numbers that are returned by calls to {@code getNumber}.
+	 */
+	public int getNumberRange() {
+		return 1 << NUMBER_SIZE;
 	}
 
 	public byte[] getPayload() {
