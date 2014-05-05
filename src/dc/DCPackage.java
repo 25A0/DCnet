@@ -15,6 +15,7 @@ public class DCPackage {
 	// The number of bits used to represent the round number
 	public static final int NUMBER_SIZE = 4;
 	// The size of the payload, in bytes
+	// The payload also includes the scheduling block
 	public static final int PAYLOAD_SIZE = PACKAGE_SIZE - HEADER_SIZE;
 
 	private final int round;
@@ -72,8 +73,16 @@ public class DCPackage {
 		if(this.getNumber() != p.getNumber()) {
 			throw new InputMismatchException("Cannot merge packages: The packages belong to two different rounds");
 		} else {
+			return combine(p.payload);
+		}
+	}
+
+	public DCPackage combine(byte[] p) throws InputMismatchException {
+		if(this.payload.length != p.length) {
+			throw new InputMismatchException("The size of the two packages is not equal: This: " + this.payload.length + " Foreign: " + p.length);
+		} else {
 			for(int i = 0; i < PAYLOAD_SIZE; i++) {
-				payload[i] ^= p.payload[i];
+				payload[i] ^= p[i];
 			}
 			return this;
 		}
@@ -112,7 +121,11 @@ public class DCPackage {
 	}
 
 	public String toString() {
-		return String.valueOf(payload);
+		StringBuilder sb = new StringBuilder();
+		sb.append("Round " + round + ":\n");
+		sb.append("Payload: (" + PAYLOAD_SIZE + " bytes)\n");
+		sb.append(Arrays.toString(payload));
+		return sb.toString();
 	}
 
 	private byte[] makeHeader(int number) {

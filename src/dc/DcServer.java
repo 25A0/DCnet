@@ -31,6 +31,8 @@ public class DcServer extends DCStation {
 			while(!isClosed) {
 				DCPackage input = cb.receive();
 				if(c != null) {
+					input.combine(kh.getOutput(DCPackage.PAYLOAD_SIZE));
+					System.out.println("[DcServer " + alias + "] Spreading package " + input.toString());
 					broadcast(input);
 				} else {
 					cb.broadcast(input);
