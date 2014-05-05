@@ -4,6 +4,7 @@ echo "setting up servers..."
 station make server s1 s2 s3 s4
 station connect s4 s3 s2 s1
 station keys add s1 s2 s1 s3 s2 s3
+station keys add s1 s4 s2 s4 s3 s4
 echo "setting up clients..."
 station make client c1 c2 c3
 station c1 connect s1
