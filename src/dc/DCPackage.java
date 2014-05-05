@@ -102,6 +102,18 @@ public class DCPackage {
 	public byte[] getPayload() {
 		return payload;
 	}
+
+	/**
+	 * Extracts the schedule in this message.
+	 * @param bytes The size of the schedule in bytes
+	 */
+	public byte[] getSchedule(int bytes) {
+		byte[] schedule = new byte[bytes];
+		for(int i= 0; i < bytes; i++) {
+			schedule[i] = payload[i];
+		}
+		return schedule;
+	}
 	
 	/**
 	 * Creates and returns a byte array that holds the information of the entire package, including the header
