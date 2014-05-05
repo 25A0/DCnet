@@ -3,17 +3,22 @@ package dc.scheduling;
 import dc.DCPackage;
 
 public class PrimitiveScheduler implements Scheduler {
-	private int currentRound = -1;
+	private int currentRound;
+	private int nextScheduledRound;
 	private int roundRange;
 
 	public PrimitiveScheduler() {
-
+		currentRound = -1;
+		nextScheduledRound = -1;
 	}
 
 	@Override
 	public boolean addPackage(DCPackage p) {
-		currentRound = p.getNumber();
 		roundRange = p.getNumberRange();
+		currentRound = p.getNumber();
+		if(currentRound == nextScheduledRound || nextScheduledRound == -1) {
+			nextScheduledRound = calculateNextRound();
+		}
 		return true;
 	}
 
@@ -27,14 +32,14 @@ public class PrimitiveScheduler implements Scheduler {
 		return new byte[]{};
 	}
 
+	private int calculateNextRound() {
+		int offset = (int) (Math.random() * (double) (roundRange - 1)) + 1;
+		return (currentRound + offset)%roundRange;
+	}
+
 	@Override
 	public int getNextRound() {
-		if(currentRound == -1) {
-			return -1;
-		} else {
-			int offset = (int) (Math.random() * (double) (roundRange - 1)) + 1;
-			return (currentRound + offset)%roundRange;
-		}
+		return nextScheduledRound;
 	}
 
 }
