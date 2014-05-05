@@ -118,14 +118,10 @@ public class DcClient extends DCStation{
 		try {
 			byte[] inputPayload = Padding10.revert10padding(message.getPayload());
 			int number = message.getNumber();
-			nextRound = ++number % message.getNumberRange();
 			if(inputPayload != null) {
-				if(scheduler.addPackage(message)) {
-					nextScheduledRound = scheduler.getNextRound();
-				}
 				// We compare 'message' rather than 'inputPayload' since
 				// the pending message includes padding.
-				if(mb.hasPendingMessage()) {
+				if(mb.hasPendingMessage() && number == nextScheduledRound) {
 					if(!mb.compareMessage(message.getPayload())) {
 						// TODO: report collision to statistics tracker.
 						System.out.println("[DcClient "+alias+"] Collision detected");
@@ -133,9 +129,13 @@ public class DcClient extends DCStation{
 						mb.confirmMessage();
 					}
 				}
+				if(scheduler.addPackage(message)) {
+					nextScheduledRound = scheduler.getNextRound();
+				}
 				inputBuffer.add(inputPayload);
 				inputAvailable.release();
 			}
+			nextRound = ++number % message.getNumberRange();
 		} catch(InputMismatchException e) {
 			// TODO: report malformed message to statistics tracker
 		} 
@@ -157,7 +157,7 @@ public class DcClient extends DCStation{
 						// In this case we haven't received a message from our network yet
 						if(passedSilentRounds > AWKWARD_SILENCE_LIMIT) {
 							// We start sending and assume that the current round number is 0
-							Debugger.println(1, "[DcClient "+alias+"] starts sending after awkward silence");
+							Debugger.println(2, "[DcClient "+alias+"] starts sending after awkward silence");
 							nextScheduledRound = 0;
 							nextRound = 0;
 						} else {
@@ -174,9 +174,9 @@ public class DcClient extends DCStation{
 				synchronized(kh) {
 					byte[] message;
 					/**
-					 *  Make sure that there are enough connections. This prevents stations
-					 *  from broadcasting messages once the number of connections drops below
-					 *  the minimum. If too little connections are available then the station
+					 *  Make sure that there are enough connections and test if we planned to send an actual message in the upcoming round. 
+					 *  This prevents stations from broadcasting messages once the number of connections drops below
+					 *  the minimum. If too little connections are available, then the station
 					 *  will only send empty messages
 					 */
 					if(kh.approved() && nextScheduledRound == nextRound) {
