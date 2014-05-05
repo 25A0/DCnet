@@ -15,12 +15,14 @@ import java.util.LinkedList;
 public class ConnectionBundle {
 	private final ArrayList<ConnectionHandler> chl;
 	private int connections;
+	
+	private DCPackage pendingPackage;
+	private int remaining;	
 
 	private boolean isClosed = false;
 	private final Semaphore inputAvailable;
 
 	private final LinkedList<DCPackage> inputBuffer;
-	private PackageWindow window;
 		
 
 	/**
@@ -41,7 +43,6 @@ public class ConnectionBundle {
 		inputAvailable = new Semaphore(0);
 		
 		connections = 0;
-		window = new PackageWindow(DCConfig.NUM_ROUNDS_AT_A_TIME);
 	}
 	
 	public void addConnection(Connection c) {
@@ -96,7 +97,7 @@ public class ConnectionBundle {
 	}
 
 	/**
-	 * Adds bytes to the input of the current round.
+	 * Adds a package to the input of the current round.
 	 * @param input The input to be added
 	 */
 	private void addInput(DCPackage input) {
@@ -104,20 +105,20 @@ public class ConnectionBundle {
 			throw new InputMismatchException("The provided input has length " + input.getPayload().length + " but should be " + DCPackage.PAYLOAD_SIZE);
 		} else {
 			int round = input.getNumber();
-			if(pendingPackages[round] == null) {
-				pendingPackages[round] = input;
+			if(pendingPackage == null) {
+				pendingPackage = input;
 			} else {
-				pendingPackages[round].combine(input);
+				pendingPackage.combine(input);
 			}
-			remaining[round]--;
+			remaining--;
 			Debugger.println(2, "[ConnectionBundle] Remaining messages: " + remaining);
-			if(remaining[round] == 0) {
-				Debugger.println(2, "[ConnectionBundle] Composed input: " + pendingPackages[round].toString());
-				inputBuffer.add(pendingPackages[round]);
+			if(remaining == 0) {
+				Debugger.println(2, "[ConnectionBundle] Composed input: " + pendingPackage.toString());
+				inputBuffer.add(pendingPackage);
 				inputAvailable.release();
 				
-				pendingPackages[round] = null;
-				remaining[round] = connections;
+				pendingPackage = null;
+				remaining = connections;
 			}
 		}
 	}
@@ -165,52 +166,4 @@ public class ConnectionBundle {
 		}
 	}
 
-	private class PackageWindow {
-		private final DCPackage[] pendingPackages;
-		private final int[] remaining;
-		private final int size;
-
-		private int windowStart, windowEnd;
-		private boolean isEmpty;
-
-		public PackageWindow(int size) {
-			this.size = size;
-			isEmpty = true;
-			remaining = new int[size];
-			pendingPackages = new DCPackage[size];
-		}
-
-		public boolean isFull() {
-			return (windowEnd + 1)%size == windowStart;
-		}
-
-		public boolean isEmpty() {
-			return isEmpty;
-		}
-
-		public void add(DCPackage p) {
-			if(isFull) {
-				throw new IllegalStateException("Trying to add a packet to a full window");
-			}
-
-			if(isEmpty) {
-				windowStart = windowEnd = p.getNumber();
-			} else {
-				shiftWindowEnd();
-			}
-
-			
-		}
-
-		private void shiftWindowStart() {
-
-		}
-
-		private void shiftWindowEnd() {
-			
-		}
-
-
-
-	}
 }

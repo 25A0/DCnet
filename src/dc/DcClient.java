@@ -1,15 +1,14 @@
 package dc;
 
-<<<<<<< HEAD
 import java.util.InputMismatchException;
-=======
 import java.util.HashMap;
->>>>>>> Package header basics
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
 
 import dc.DCPackage;
+import dc.scheduling.Scheduler;
+import dc.scheduling.PrimitiveScheduler;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -26,9 +25,19 @@ public class DcClient extends DCStation{
 
 	private final LinkedList<byte[]> inputBuffer;
 	private Scheduler scheduler;
-	private int currentRound, nextRound;
+	// The index of the next round to be sent
+	private int nextRound;
+	// The index of the next round that is scheduled for us to send something
+	private int nextScheduledRound;
 	
-	public static final long WAIT_TIME = 5000;
+	// The time that this client waits between sending messages
+	// This is a minimal wait time, the client will wait longer if the current round
+	// takes longer to finish
+	public static final long WAIT_TIME = 1000;
+
+	// The number of times clients will wait before they assume that they
+	// are alone in the network or everyone is waiting for each other to start
+	public static final long AWKWARD_SILENCE_LIMIT = 3;
 	
 	
 	/**
@@ -55,17 +64,22 @@ public class DcClient extends DCStation{
 		scheduler = new PrimitiveScheduler();
 		// We initially don't know the current round of the network
 		// therefore this is initialized to a sentinel value
-		currentRound = -1;
-		// -1 is the sentinel value for 'no round is scheduled for us'
 		nextRound = -1;
+		// -1 is the sentinel value for 'no round is scheduled for us'
+		nextScheduledRound = -1;
 		
 		// Start up the round initializer
 		(new Thread(new RoundInitializer())).start();
 		
 	}
 
+	/**
+	 * Changes the scheduler to be used and resets the round numbers
+	 * @param s The scheduler to be used
+	 */
 	public void setScheduler(Scheduler s) {
 		this.scheduler = s;
+		nextScheduledRound = -1;
 	}
 
 	public void send(String s) throws IOException {
@@ -76,6 +90,10 @@ public class DcClient extends DCStation{
 		mb.write(b);
 	}
 
+	/**
+	 * Checks whether this client has received any messages since the last call to {@code receive}
+	 * @return true if there are messages to be read, false otherwise
+	 */
 	public boolean canReceive() {
 		boolean isAvailable = inputAvailable.tryAcquire();
 		if(isAvailable) {
@@ -98,14 +116,17 @@ public class DcClient extends DCStation{
 	@Override
 	protected void addInput(DCPackage message) {
 		try {
-			byte[] inputPayload = Padding10.revert10padding(messag.getPayload());
-			byte number = message.getNumber();
-			// currentRound = ++number % message.get
+			byte[] inputPayload = Padding10.revert10padding(message.getPayload());
+			int number = message.getNumber();
+			nextRound = ++number % message.getNumberRange();
 			if(inputPayload != null) {
+				if(scheduler.addPackage(message)) {
+					nextScheduledRound = scheduler.getNextRound();
+				}
 				// We compare 'message' rather than 'inputPayload' since
 				// the pending message includes padding.
 				if(mb.hasPendingMessage()) {
-					if(!mb.compareMessage(message)) {
+					if(!mb.compareMessage(message.getPayload())) {
 						// TODO: report collision to statistics tracker.
 						System.out.println("[DcClient "+alias+"] Collision detected");
 					} else {
@@ -125,14 +146,27 @@ public class DcClient extends DCStation{
 	
 
 	private class RoundInitializer implements Runnable {
-
+		private int passedSilentRounds = 0;
 		@Override
 		public void run() {
 			while(!isClosed) {
 				connectionSemaphore.acquireUninterruptibly();
-				windowSemaphore.acquireUninterruptibly();				
 				try{
 					Thread.sleep(WAIT_TIME);
+					if(nextRound == -1) {
+						// In this case we haven't received a message from our network yet
+						if(passedSilentRounds > AWKWARD_SILENCE_LIMIT) {
+							// We start sending and assume that the current round number is 0
+							Debugger.println(1, "[DcClient "+alias+"] starts sending after awkward silence");
+							nextScheduledRound = 0;
+							nextRound = 0;
+						} else {
+							// We keep waiting
+							passedSilentRounds++;
+							connectionSemaphore.release();
+							continue;
+						}
+					}
 				} catch (InterruptedException e) {
 					// ignore
 				}
@@ -145,19 +179,18 @@ public class DcClient extends DCStation{
 					 *  the minimum. If too little connections are available then the station
 					 *  will only send empty messages
 					 */
-					if(kh.approved()) {
+					if(kh.approved() && nextScheduledRound == nextRound) {
 						message = mb.getMessage();
 					} else {
 						message = new byte[DCPackage.PAYLOAD_SIZE];
 					}
 					Debugger.println(2, "[DcClient "+alias+"] Sending message " + Arrays.toString(message));
-					output = kh.getOutput(message);
+					output = kh.getOutput(scheduler.getSchedule(), message);
 					Debugger.println(2, "[DcClient "+alias+"] Sending output " + Arrays.toString(output));
 					
 				}
-				broadcast(new DCPackage(nextOutRoundIndex, output));
-				nextOutRoundIndex++;
-				nextOutRoundIndex %= DCConfig.NUM_ROUNDS_AT_A_TIME;
+				DCPackage pckg = new DCPackage(nextRound, output);
+				broadcast(pckg);
 				
 				connectionSemaphore.release();
 				// Wait until a new round can be started

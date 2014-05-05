@@ -15,7 +15,7 @@ public class DCPackage {
 	// The number of bits used to represent the round number
 	public static final int NUMBER_SIZE = 4;
 	// The size of the payload, in bytes
-	public final int PAYLOAD_SIZE;
+	public static final int PAYLOAD_SIZE = PACKAGE_SIZE - HEADER_SIZE;
 
 	private final int round;
 
@@ -26,13 +26,11 @@ public class DCPackage {
 	 * @throws InputMismatchException If the payload size does not match the expected size
 	 */
 	public DCPackage(int number, byte[] payload) throws InputMismatchException {
-		PAYLOAD_SIZE = PACKAGE_SIZE - HEADER_SIZE;
 		if(payload.length > PAYLOAD_SIZE) {
 			System.err.println("[DCPackage] Severe: Rejecting input " + String.valueOf(payload) + " since it is too much for a single message.");
 			throw new InputMismatchException("Payload size exceeds bounds: Payload size is " + payload.length + " and must at most be " + PAYLOAD_SIZE);
-		} else if(number > (1 << NUMBER_SIZE)) {
-			throw new InputMismatchException("The round number exceeds the bounds of this package format.")
-		}
+		} else if(number >= (1 << NUMBER_SIZE)) {
+			throw new InputMismatchException("The round number exceeds the bounds of this package format.");
 		} else {
 			this.round = number;
 			this.payload = payload;
@@ -51,7 +49,7 @@ public class DCPackage {
 			throw new InputMismatchException("The size of the raw byte input is " + raw.length+" and does not match the expected package size " + PACKAGE_SIZE);
 		} else {
 			byte number = raw[0];
-			if(number < 0 || number > DCConfig.NUM_ROUNDS_AT_A_TIME) {
+			if(number < 0 || number > getNumberRange()) {
 				throw new InputMismatchException("The round number " + number + " is out of bounds");
 			}
 			byte[] payload = new byte[PAYLOAD_SIZE];
@@ -88,7 +86,7 @@ public class DCPackage {
 	/**
 	 * Returns the range limit of the round numbers that are returned by calls to {@code getNumber}.
 	 */
-	public int getNumberRange() {
+	public static int getNumberRange() {
 		return 1 << NUMBER_SIZE;
 	}
 
@@ -117,9 +115,17 @@ public class DCPackage {
 		return String.valueOf(payload);
 	}
 
-	private byte[] makeHeader(byte number) {
+	private byte[] makeHeader(int number) {
 		byte[] header = new byte[HEADER_SIZE];
-		header[0] = number;
+		if(number >= (1 << (8* HEADER_SIZE))) {
+			throw new InputMismatchException("The round number " + number + " exceeds the bound of " + (1 << (8*HEADER_SIZE)));
+		}
+		int i = 0;
+		do {
+			header[i] = (byte) (number % 256);
+			number >>= 8;
+			i++;
+		} while(number != 0);
 		return header;
 	}
 	

@@ -9,5 +9,4 @@ public class DCConfig {
 	// of a minimum size of 3.
 	public static final int MIN_NUM_KEYS = 2;
 	
-	public static final int NUM_ROUNDS_AT_A_TIME = 8;
 }

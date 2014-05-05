@@ -25,7 +25,7 @@ public class SchedulingController extends CLC {
 
 		Action benchmarkAction = new Action() {
 			private int maxClients, numSlots, numBits, samples;
-			private final int factor = 100;
+			private final int factor = 10;
 
 			@Override
 			public void execute(ArgSet args) {

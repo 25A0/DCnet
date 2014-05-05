@@ -26,8 +26,8 @@ public class Connection {
 	}
 	
 	public DCPackage receiveMessage() throws IOException {
-		byte[] buffer = new byte[DCPackage.PAYLOAD_SIZE];
-		for(int i = 0; i < DCPackage.PAYLOAD_SIZE; i++) {
+		byte[] buffer = new byte[DCPackage.PACKAGE_SIZE];
+		for(int i = 0; i < DCPackage.PACKAGE_SIZE; i++) {
 			buffer[i] = (byte) is.read();
 		}
 		return DCPackage.getPackage(buffer);
