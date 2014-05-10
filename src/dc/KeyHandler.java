@@ -86,7 +86,7 @@ public class KeyHandler {
 			output[i] = (byte) (scheduling[i] ^ currentKeyMix[i]);
 		}
 		for(int i = 0; i < message.length; i++) {
-			output[i] = (byte) (message[i + scheduling.length] ^ currentKeyMix[i]);
+			output[i + scheduling.length] = (byte) (message[i] ^ currentKeyMix[i]);
 		}
 		return output;
 	}

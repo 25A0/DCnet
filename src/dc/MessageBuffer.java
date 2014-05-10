@@ -11,8 +11,10 @@ import util.Padding10;
  * A buffer that is used by a DcClient to store messages that have yet to be sent.
  */
 public class MessageBuffer extends OutputStream {
-		// The size of each message
+		// The size of the payload in a package
 		private final int payloadSize;
+		// The size of a message.
+		private final int messageSize;
 		// The message that was sent most recently but was not succesfully delivered yet
 		private byte[] pendingMessage;
 		// A buffer that holds all unsent messages
@@ -23,11 +25,20 @@ public class MessageBuffer extends OutputStream {
 		// The message that is currently build up from user input
 		private byte[] currentMessage;
 
-		public MessageBuffer() {
+		/**
+		 * Initializes the messageBuffer for a given message size.
+		 * The message size does not need to care about padding 
+		 * (i.e. if packages have a payload of 1024 bytes, set payloadSize to 1024
+		 * and the MessageBuffer will reserve one byte for padding, leaving room 
+		 * for 1023 byte messages)
+		 * @param  payloadSize The size of the payload in bytes
+		 */
+		public MessageBuffer(int payloadSize) {
 			messageBuffer = new LinkedList<byte[]>();
 			// Subtract 1 for 10 padding
-			payloadSize = DCPackage.PAYLOAD_SIZE - 1;
-			currentMessage = new byte[payloadSize];
+			this.payloadSize = payloadSize;
+			this.messageSize = payloadSize - 1;
+			currentMessage = new byte[messageSize];
 			writePointer = 0;
 		}
 
@@ -37,14 +48,13 @@ public class MessageBuffer extends OutputStream {
 		}
 		
 		public synchronized void write(byte b){
-			// Debugger.println(2, "[DummyConnection] writing " + (char)b);
 			currentMessage[writePointer] = b;
 			writePointer++;
-			if(writePointer >= payloadSize) {
+			if(writePointer >= messageSize) {
 				synchronized(messageBuffer) {
 					messageBuffer.add(currentMessage);
 				}
-				currentMessage = new byte[payloadSize];
+				currentMessage = new byte[messageSize];
 				writePointer = 0;
 			}
 		}
@@ -59,13 +69,13 @@ public class MessageBuffer extends OutputStream {
 				return pendingMessage;
 			} else if(!messageBuffer.isEmpty()) {
 				// Fetch the last message from the buffer and apply padding
-				pendingMessage = Padding10.apply10padding(messageBuffer.poll(), DCPackage.PAYLOAD_SIZE);	
+				pendingMessage = Padding10.apply10padding(messageBuffer.poll(), payloadSize);	
 				return pendingMessage;
 			} else if(writePointer > 0) {
 				// Only in this case we have to apply padding
 				synchronized(this) {
-					byte[] message = Padding10.apply10padding(currentMessage, writePointer, DCPackage.PAYLOAD_SIZE);
-					currentMessage = new byte[payloadSize];
+					byte[] message = Padding10.apply10padding(currentMessage, writePointer, payloadSize);
+					currentMessage = new byte[messageSize];
 					writePointer = 0;
 					pendingMessage = message;
 					return message;
@@ -74,7 +84,7 @@ public class MessageBuffer extends OutputStream {
 			// This catches everything that was not caught by previous conditions
 			// We do not apply padding since the message is meant to be _empty_.
 			// We do not send a pending message, either.
-			return new byte[DCPackage.PAYLOAD_SIZE];
+			return new byte[payloadSize];
 				
 		}
 

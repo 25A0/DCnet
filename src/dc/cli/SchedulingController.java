@@ -24,8 +24,9 @@ public class SchedulingController extends CLC {
 		};
 
 		Action benchmarkAction = new Action() {
-			private int maxClients, numSlots, numBits, samples;
-			private final int factor = 10;
+			private int maxClients, numSlots, numBits;
+			private final int steps = 100;
+			private int factor;
 
 			@Override
 			public void execute(ArgSet args) {
@@ -33,13 +34,16 @@ public class SchedulingController extends CLC {
 				maxClients = args.fetchInteger();
 				numSlots = args.fetchInteger();
 				numBits = args.fetchInteger();
-				samples = maxClients / factor;
-				int clients[][] = new int[avgs][samples];
-				int succeeded[][] = new int[avgs][samples];
-				int requiredRounds[][] = new int[avgs][samples];
-				int emptySlots[][] = new int[avgs][samples];
+				factor = maxClients / steps;
+				int clients[][] = new int[avgs][steps];
+				int succeeded[][] = new int[avgs][steps];
+				int requiredRounds[][] = new int[avgs][steps];
+				int emptySlots[][] = new int[avgs][steps];
+				System.out.println("Executing benchmark for " + maxClients + " clients, " + numSlots + " slots and " + numBits + " bits per slot");
 				for(int i = 0; i < avgs; i++) {
+					System.out.print("["+(i+1)+"/"+(avgs)+"]\t");
 					benchmark(clients[i], succeeded[i], requiredRounds[i], emptySlots[i]);
+					System.out.println(" [DONE]");
 				}
 
 				System.out.println(" DONE");
@@ -50,9 +54,9 @@ public class SchedulingController extends CLC {
 			}
 
 			private void benchmark(int[] clients, int[] succeeded, int[] requiredRounds, int[] emptySlots) {
-				System.out.print("Benchmarking ");
-				for(int i = 1 + numSlots/factor; i < samples; i++) {
-					Scheduling s = new Scheduling(i*factor, numSlots, numBits);
+				for(int i = 1; i < steps; i++) {
+					// Scheduling s = new Scheduling(i*factor, numSlots, numBits);
+					Scheduling s = new Scheduling(maxClients, numSlots, numBits);
 					s.schedule();
 					clients[i] = i*factor;
 					succeeded[i] = s.succeeded? 1 : 0;
@@ -60,6 +64,7 @@ public class SchedulingController extends CLC {
 					emptySlots[i] = s.emptySlots;
 					System.out.print(".");
 				}
+
 			}
 
 			private double[] avg(int avgs, int[][] data) {

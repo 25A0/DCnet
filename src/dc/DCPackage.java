@@ -13,7 +13,7 @@ public class DCPackage {
 	// The number of bytes that make up the header of the package
 	public static final int HEADER_SIZE = 1;
 	// The number of bits used to represent the round number
-	public static final int NUMBER_SIZE = 4;
+	public static final int NUMBER_SIZE = 5;
 	// The size of the payload, in bytes
 	// The payload also includes the scheduling block
 	public static final int PAYLOAD_SIZE = PACKAGE_SIZE - HEADER_SIZE;
@@ -104,8 +104,9 @@ public class DCPackage {
 	}
 
 	/**
-	 * Extracts the schedule in this message.
+	 * Extracts the schedule in this package.
 	 * @param bytes The size of the schedule in bytes
+	 * @return  A byte array containing the schedule of this package.
 	 */
 	public byte[] getSchedule(int bytes) {
 		byte[] schedule = new byte[bytes];
@@ -113,6 +114,20 @@ public class DCPackage {
 			schedule[i] = payload[i];
 		}
 		return schedule;
+	}
+
+	/**
+	 * Extracts the message in this package.
+	 * @param  offset The bytes of offset at which the message starts. This depends on the used scheduling algorithm.
+	 * @return  A byte array containing the message of this package (including padding)
+	 */
+	public byte[] getMessage(int offset) {
+		int l = PAYLOAD_SIZE - offset;
+		byte[] message = new byte[l];
+		for(int i = 0; i < l; i++) {
+			message[i] = payload[i + offset];
+		}
+		return message;
 	}
 	
 	/**

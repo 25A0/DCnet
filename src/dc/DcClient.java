@@ -59,9 +59,10 @@ public class DcClient extends DCStation{
 		
 		inputAvailable = new Semaphore(0);
 		inputBuffer = new LinkedList<byte[]>();
-		mb = new MessageBuffer();
 
-		scheduler = new PrimitiveScheduler();
+		scheduler = DCConfig.schedulingMethod.getScheduler();
+
+		mb = new MessageBuffer(DCPackage.PAYLOAD_SIZE - scheduler.getScheduleSize());
 		// We initially don't know the current round of the network
 		// therefore this is initialized to a sentinel value
 		nextRound = -1;
@@ -115,30 +116,31 @@ public class DcClient extends DCStation{
 
 	@Override
 	protected void addInput(DCPackage message) {
+		byte[] inputPayload = null;
 		try {
-			byte[] inputPayload = Padding10.revert10padding(message.getPayload());
-			int number = message.getNumber();
-			if(inputPayload != null) {
-				// We compare 'message' rather than 'inputPayload' since
-				// the pending message includes padding.
-				if(mb.hasPendingMessage() && number == nextScheduledRound) {
-					if(!mb.compareMessage(message.getPayload())) {
-						// TODO: report collision to statistics tracker.
-						System.out.println("[DcClient "+alias+"] Collision detected");
-					} else {
-						mb.confirmMessage();
-					}
-				}
-				if(scheduler.addPackage(message)) {
-					nextScheduledRound = scheduler.getNextRound();
-				}
-				inputBuffer.add(inputPayload);
-				inputAvailable.release();
-			}
-			nextRound = ++number % message.getNumberRange();
+			inputPayload = Padding10.revert10padding(message.getMessage(scheduler.getScheduleSize()));
 		} catch(InputMismatchException e) {
-			// TODO: report malformed message to statistics tracker
+			System.out.println("Failed to revert 1- padding");
 		} 
+		int number = message.getNumber();
+		if(inputPayload != null) {
+			// We compare 'message' rather than 'inputPayload' since
+			// the pending message includes padding.
+			if(mb.hasPendingMessage() && number == nextScheduledRound) {
+				if(!mb.compareMessage(message.getMessage(scheduler.getScheduleSize()))) {
+					// TODO: report collision to statistics tracker.
+					System.out.println("[DcClient "+alias+"] Collision detected");
+				} else {
+					mb.confirmMessage();
+				}
+			}
+			inputBuffer.add(inputPayload);
+			inputAvailable.release();
+		}
+		if(scheduler.addPackage(message)) {
+			nextScheduledRound = scheduler.getNextRound();
+		}
+		nextRound = ++number % message.getNumberRange();
 		// Announce the end of the round no matter what.
 		roundCompletionSemaphore.release();	
 	}
@@ -157,7 +159,7 @@ public class DcClient extends DCStation{
 						// In this case we haven't received a message from our network yet
 						if(passedSilentRounds > AWKWARD_SILENCE_LIMIT) {
 							// We start sending and assume that the current round number is 0
-							Debugger.println(2, "[DcClient "+alias+"] starts sending after awkward silence");
+							Debugger.println(1, "[DcClient "+alias+"] starts sending after awkward silence");
 							nextScheduledRound = 0;
 							nextRound = 0;
 						} else {
@@ -182,7 +184,7 @@ public class DcClient extends DCStation{
 					if(kh.approved() && nextScheduledRound == nextRound) {
 						message = mb.getMessage();
 					} else {
-						message = new byte[DCPackage.PAYLOAD_SIZE];
+						message = new byte[DCPackage.PAYLOAD_SIZE - scheduler.getScheduleSize()];
 					}
 					Debugger.println(2, "[DcClient "+alias+"] Sending message " + Arrays.toString(message));
 					output = kh.getOutput(scheduler.getSchedule(), message);
