@@ -1,0 +1,4 @@
+# This script simulates a collision by letting two stations send two messages right after each other. It executes the MulitStation script to build a two-layer network with 4 servers and 9 clients.
+run scripts/mss
+station c1 send "something"
+station c5 send "harr! collision!"
