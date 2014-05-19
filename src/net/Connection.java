@@ -1,4 +1,4 @@
-package dc;
+package net;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,7 +12,7 @@ import cli.Debugger;
 import dc.DCPackage;
 import dc.testing.DummyConnection;
 
-public class Connection {
+public abstract class Connection {
 	private final InputStream is;
 	private final OutputStream os;
 	
@@ -35,4 +35,6 @@ public class Connection {
 		// Debugger.println(2, "[Connection] reading " + s);
 		// return DCPackage.getMessages(s)[0];
 	}
+
+	public abstract void close() throws IOException;
 }

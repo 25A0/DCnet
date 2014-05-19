@@ -7,16 +7,19 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 
 import cli.ArgSet;
 import cli.CLC;
 import cli.Debugger;
-import dc.Connection;
+import net.Connection;
+import net.NetworkConnection;
 import dc.DCStation;
 import dc.DcServer;
 import dc.DcClient;
-import dc.KeyHandler;
+import dc.testing.DummyChannel;
 import dc.testing.DummyConnection;
 
 
@@ -24,7 +27,7 @@ public class MultiStationInterface extends CLC {
 	private HashMap<String, DcServer> servers;
 	private HashMap<String, DcClient> clients;
 
-	private Action listAction, noSuchStationAction, create, createServer, createClient, connect;
+	private Action listAction, noSuchStationAction, create, createServer, createClient, connectLocal;
 
 	public MultiStationInterface() {
 		servers = new HashMap<String, DcServer>();
@@ -47,8 +50,8 @@ public class MultiStationInterface extends CLC {
 				System.out.println("[MultiStationInterface] No command is associated with \"" + s + "\". If you want to create a station with that alias, use \"station make "+s+"\"");
 			}
 		};
-
-		connect = new Action() {
+		
+		connectLocal = new Action() {
 			@Override
 			public void execute(ArgSet args) {
 				if(!args.hasArg()) {
@@ -63,10 +66,10 @@ public class MultiStationInterface extends CLC {
 							String stationAlias  = args.pop();
 							if(servers.containsKey(stationAlias)) {
 								DCStation station = servers.get(stationAlias);
-								connectTo(server, station);
+								connectLocal(server, station);
 							} else if(clients.containsKey(stationAlias)) {
 								DCStation station = clients.get(stationAlias);
-								connectTo(server, station);
+								connectLocal(server, station);
 							} else {
 								System.out.println("[MultiStationInterface] There is no station called " + stationAlias);
 								return;
@@ -92,7 +95,16 @@ public class MultiStationInterface extends CLC {
 					if(clients.containsKey(alias) || servers.containsKey(alias)) {
 						System.out.println("[MultiStationInterface] A client or server with the name " + alias + " already exists.");
 					} else {
-						DcServer s = new DcServer(alias);
+						DcServer s;
+						if(args.hasAbbArg() && args.fetchAbbr() == 'l') {
+							s = new DcServer(alias);
+						} else if(!args.hasIntArg()) {
+							System.out.println("[MultiStationInterface] Please provide a port number, or use option \"-l\" to start a local server.");
+							return;
+						} else {
+							int port = args.fetchInteger();
+							s = new DcServer(alias, port);
+						}
 						servers.put(alias, s);
 						mapCommand(alias, new CommandAction(new ServerInterface(s)));
 					}
@@ -120,8 +132,8 @@ public class MultiStationInterface extends CLC {
 		setDefaultAction(noSuchStationAction);
 		mapAbbreviation('l', listAction);
 		mapOption("list", listAction);
-		mapCommand("connect", connect);
-		mapAbbreviation('c', connect);
+		mapCommand("connect", connectLocal);
+		mapAbbreviation('c', connectLocal);
 		
 		mapCommand("make", create);
 		getContext("make").mapCommand("server", createServer);
@@ -130,14 +142,26 @@ public class MultiStationInterface extends CLC {
 		mapCommand("keys", new CommandAction(new KeyHandlerInterface()));
 	}
 
-	private void connectTo(DcServer server, DCStation station) {
-		DummyConnection dc = new DummyConnection();
-		Connection c1 = new Connection(dc.chA.getInputStream(), dc.chB.getOutputStream());
-		Connection c2 = new Connection(dc.chB.getInputStream(), dc.chA.getOutputStream());
+	private void connectLocal(DcServer server, DCStation station) {
+		DummyChannel chA = new DummyChannel(), chB = new DummyChannel();
+		Connection c1 = new DummyConnection(chA.getInputStream(), chB.getOutputStream());
+		Connection c2 = new DummyConnection(chB.getInputStream(), chA.getOutputStream());
 		station.setConnection(c1);
 		server.getCB().addConnection(c2);
 	}
 	
+	private void connect(String url, int port, DCStation station) {
+		try {
+			Socket s = new Socket(url, port);
+			NetworkConnection nc = new NetworkConnection(s);
+			station.setConnection(nc);
+		} catch (UnknownHostException e) {
+			System.out.println("Connection to host failed: The host with the address " + url + ":" + port + " was not found.");
+		} catch (IOException e) {
+			System.out.println("Connection to host failed");
+			e.printStackTrace();
+		}
+	}
 
 	private DCStation getStation(ArgSet args) {
 		if(!args.hasArg()) return null; 
@@ -268,12 +292,12 @@ public class MultiStationInterface extends CLC {
 	private class StationInterface extends CLC {
 		private final DCStation station;
 				
-		private Action close, connect;
+		private Action close, connect, connectLocal;
 		
 		public StationInterface(DCStation s) {		
 			this.station = s;
 			
-			connect = new Action() {
+			connectLocal = new Action() {
 				@Override
 				public void execute(ArgSet args) {
 					if(!args.hasArg()) {
@@ -284,8 +308,30 @@ public class MultiStationInterface extends CLC {
 							System.out.println("[MultiStationInterface] There is no server called " + serverAlias);
 						} else {
 							DcServer server = servers.get(serverAlias);
-							connectTo(server, station);
+							connectLocal(server, station);
 						}
+					}
+				}
+			};
+			
+			connect = new Action() {
+				@Override
+				public void execute(ArgSet args) {
+					if(!args.hasStringArg()) {
+						System.out.println("[MultiStationInterface] Please provide the address of the server you want to connect to");
+					} else {
+						String url = args.fetchString();
+						int port;
+						String[] sa = url.split(":");
+						if(sa.length == 2) {
+							 url = sa[0];
+							 port = Integer.parseInt(sa[1]);
+						} else if(args.hasIntArg()) {
+							port = args.fetchInteger();
+						} else {
+							port = 0;
+						}
+						connect(url, port, station);
 					}
 				}
 			};
@@ -293,12 +339,17 @@ public class MultiStationInterface extends CLC {
 			close = new Action() {
 				@Override
 				public void execute(ArgSet args) {
-					station.close();
+					try {
+						station.close();
+					} catch (IOException e) {
+						System.out.println("[MultiStationInterface] An error occured while trying to close the station " + station.getAlias());
+					}
 				}
 			};
 			
 			mapCommand("close", close);
 			mapCommand("connect", connect);
+			getContext("connect").mapAbbreviation('l', connectLocal);
 			
 		}
 

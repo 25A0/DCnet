@@ -7,6 +7,7 @@ import java.util.concurrent.Semaphore;
 
 import cli.Debugger;
 import dc.DCPackage;
+import net.Connection;
 
 import java.util.Arrays;
 import java.util.InputMismatchException;
@@ -76,8 +77,10 @@ public class ConnectionBundle {
 		}
 	}
 
-	public void close() {
-		// TODO: close individual connections
+	public void close() throws IOException {
+		for(ConnectionHandler ch: chl) {
+			ch.close();
+		}
 		isClosed = true;
 	}
 
@@ -146,7 +149,8 @@ public class ConnectionBundle {
 			this.c = c;
 		}
 
-		public void close() {
+		public void close() throws IOException {
+			c.close();
 			isClosed = true;
 		}
 

@@ -8,6 +8,8 @@ import java.util.concurrent.Semaphore;
 
 import dc.MessageBuffer;
 
+import net.Connection;
+
 import cli.Debugger;
 
 public abstract class DCStation {
@@ -41,7 +43,10 @@ public abstract class DCStation {
 		}	
 	}
 	
-	public void close() {
+	public void close() throws IOException {
+		if(c!= null) {
+			c.close();
+		}
 		isClosed = true;
 	}
 	
