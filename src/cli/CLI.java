@@ -56,11 +56,11 @@ public class CLI {
 	 * @throws IOException
 	 */
 	private void readLoop() throws IOException {
-		while(!stopped) {
+		String s = br.readLine();
+		while(!stopped && s != null) {
 			System.out.print("[DCnet] ");
-			String s = br.readLine();
-			// TODO split on complete whitespaces, not just spaces
 			controller.handle(new ArgSet(s));
+			s = br.readLine();
 		}
 	}
 	
@@ -97,11 +97,12 @@ public class CLI {
 						try {
 							File f = new File(path);
 							BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
-							while(br.ready()) {
-								String s = br.readLine();
+							String s = br.readLine();
+							while(s != null) {
 								controller.handle(new ArgSet(s));
+								s = br.readLine();
 							}
-							// f.close();
+							br.close();
 						} catch(FileNotFoundException e) {
 							System.out.println("[CommandLineInterface] The file " + path + " does not exist.");
 						} catch(IOException e) {

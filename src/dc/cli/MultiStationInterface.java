@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.HashMap;
@@ -90,13 +91,14 @@ public class MultiStationInterface extends CLC {
 		createServer = new Action() {
 			@Override
 			public void execute(ArgSet args) {
+				boolean localFlag = args.hasAbbArg() && args.fetchAbbr() == 'l';
 				while(args.hasArg()) {
 					String alias = args.pop();
 					if(clients.containsKey(alias) || servers.containsKey(alias)) {
 						System.out.println("[MultiStationInterface] A client or server with the name " + alias + " already exists.");
 					} else {
 						DcServer s;
-						if(args.hasAbbArg() && args.fetchAbbr() == 'l') {
+						if(localFlag) {
 							s = new DcServer(alias);
 						} else if(!args.hasIntArg()) {
 							System.out.println("[MultiStationInterface] Please provide a port number, or use option \"-l\" to start a local server.");
@@ -317,10 +319,10 @@ public class MultiStationInterface extends CLC {
 			connect = new Action() {
 				@Override
 				public void execute(ArgSet args) {
-					if(!args.hasStringArg()) {
+					if(!args.hasArg()) {
 						System.out.println("[MultiStationInterface] Please provide the address of the server you want to connect to");
 					} else {
-						String url = args.fetchString();
+						String url = args.pop();
 						int port;
 						String[] sa = url.split(":");
 						if(sa.length == 2) {
@@ -349,7 +351,7 @@ public class MultiStationInterface extends CLC {
 			
 			mapCommand("close", close);
 			mapCommand("connect", connect);
-			getContext("connect").mapAbbreviation('l', connectLocal);
+			// getContext("connect").mapAbbreviation('l', connectLocal);
 			
 		}
 
