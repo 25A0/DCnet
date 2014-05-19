@@ -319,6 +319,10 @@ public class MultiStationInterface extends CLC {
 			connect = new Action() {
 				@Override
 				public void execute(ArgSet args) {
+					if(args.hasAbbArg() && args.fetchAbbr() == 'l') {
+						connectLocal.execute(args);
+						return;
+					}
 					if(!args.hasArg()) {
 						System.out.println("[MultiStationInterface] Please provide the address of the server you want to connect to");
 					} else {
@@ -351,8 +355,6 @@ public class MultiStationInterface extends CLC {
 			
 			mapCommand("close", close);
 			mapCommand("connect", connect);
-			// getContext("connect").mapAbbreviation('l', connectLocal);
-			
 		}
 
 		

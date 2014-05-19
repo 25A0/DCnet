@@ -31,7 +31,7 @@ public class CLI {
 	private boolean stopped = false;
 	
 	/**
-	 * Initialises a new Command Line Interface. This interface holds a controller
+	 * Initializes a new Command Line Interface. This interface holds a controller
 	 * to handle commands.
 	 * @param controller The controller that handles user commands
 	 * @param args The list of arguments which are still to be evaluated
@@ -56,12 +56,13 @@ public class CLI {
 	 * @throws IOException
 	 */
 	private void readLoop() throws IOException {
-		String s = br.readLine();
-		while(!stopped && s != null) {
+		String s;
+		do {
 			System.out.print("[DCnet] ");
-			controller.handle(new ArgSet(s));
 			s = br.readLine();
-		}
+			if(s == null) return;
+			controller.handle(new ArgSet(s));
+		} while(!stopped);
 	}
 	
 	/**
@@ -97,11 +98,13 @@ public class CLI {
 						try {
 							File f = new File(path);
 							BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
-							String s = br.readLine();
-							while(s != null) {
-								controller.handle(new ArgSet(s));
+							String s;
+							do {
 								s = br.readLine();
-							}
+								if(s != null) {
+									controller.handle(new ArgSet(s));
+								}
+							} while(s != null);
 							br.close();
 						} catch(FileNotFoundException e) {
 							System.out.println("[CommandLineInterface] The file " + path + " does not exist.");
