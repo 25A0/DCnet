@@ -9,6 +9,7 @@ import java.util.concurrent.Semaphore;
 import dc.MessageBuffer;
 
 import net.Connection;
+import net.Network;
 
 import cli.Debugger;
 
@@ -16,6 +17,7 @@ public abstract class DCStation {
 	protected Connection c;
 	protected final String alias;
 	protected final KeyHandler kh;
+	protected final Network net;
 	
 	protected boolean isClosed = false;
 	
@@ -24,6 +26,7 @@ public abstract class DCStation {
 
 	public DCStation(String alias) {
 		this.alias = alias;
+		net = new Network();
 		kh = new KeyHandler(alias);
 		connectionSemaphore = new Semaphore(0);
 		(new Thread(new InputReader())).start();

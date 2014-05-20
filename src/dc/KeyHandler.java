@@ -2,6 +2,8 @@ package dc;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Collection;
+import java.util.ArrayList;
 
 import com.neilalexander.jnacl.crypto.salsa20;
 
@@ -10,6 +12,8 @@ import com.neilalexander.jnacl.crypto.salsa20;
 import dc.DCPackage;
 import cli.Debugger;
 import util.HashUtil;
+
+import net.Network;
 
 public class KeyHandler {
 	private static HashUtil hu = new HashUtil(HashUtil.SHA_256);
@@ -54,30 +58,33 @@ public class KeyHandler {
 		}
 	}
 	
-	public byte[] getOutput(int length) {
-		return nextKeyMix(length);		
+	public byte[] getOutput(int length, Collection<String> members) {
+		Collection<String> cutSet = getCutSet(members);
+		return nextKeyMix(length, cutSet);		
 	}
 	
-	/**
-	 * Turns plain messages into encrypted output
-	 * @param  scheduling The byte array of scheduling information
-	 * @param  message    The byte array containing the message payload
-	 * @return            A byte array that contains the encrypted concatenation of both inputs
-	 */
-	public byte[] getOutput(byte[] scheduling, byte[] message) {
+	public byte[] getOutput(byte[] scheduling, byte[] message, Collection<String> members) {
 		int length = scheduling.length + message.length;
+		Collection<String> cutSet = getCutSet(members);
 		byte[] output = new byte[length];
-		byte[] currentKeyMix = nextKeyMix(length);
+		byte[] currentKeyMix = nextKeyMix(length, cutSet);
 		for(int i = 0; i < scheduling.length; i++) {
 			output[i] = (byte) (scheduling[i] ^ currentKeyMix[i]);
 		}
 		for(int i = 0; i < message.length; i++) {
+			// TODO: recurring key. issue?
 			output[i + scheduling.length] = (byte) (message[i] ^ currentKeyMix[i % currentKeyMix.length]);
 		}
 		return output;
 	}
 
-	private byte[] nextKeyMix(int length) {
+	/**
+	 * Returns the next key mix, given the set of aliases that should be used.
+	 * @param length The desired length of the key
+	 * @param members The set of aliases that will determine which keys will be used.
+	 * @return  A byte array that contains the combined keys of all aliases that were found in {@code members}.
+	 */
+	private byte[] nextKeyMix(int length, Collection<String> members) {
 		byte[] keyMix = new byte[length];
 		synchronized(keychain) {
 			for(KeyNoncePair knp: keychain.values()) {
@@ -88,9 +95,29 @@ public class KeyHandler {
 		return keyMix;
 	}
 
-	public boolean approved() {
+	public boolean approved(Collection<String> networkMembers) {
+		Collection<String> cutSet = getCutSet(networkMembers);
+		return cutSet.size() >= DCConfig.MIN_NUM_KEYS;
+	}
+
+	/**
+	 * Draws a subset from the passed set that contains all
+	 * entries of the passed set that are known by this 
+	 * KeyHandler.
+	 * @param  networkMembers The collection of members on this network
+	 * @return                The cut-set of {@code networkMembers} with {@code keychain.keySet()}.
+	 */
+	private Collection<String> getCutSet(Collection<String> networkMembers) {
 		synchronized(keychain) {
-			return numKeys >= DCConfig.MIN_NUM_KEYS;
+			ArrayList<String> cutSet = new ArrayList<String>();
+			// networkMembers might be bigger than keychain.keySet()
+			// but lookups are faster in HashMaps than in Collections.
+			for(String s: networkMembers) {
+				if(keychain.containsKey(s)) {
+					cutSet.add(s);
+				}
+			}
+			return cutSet;
 		}
 	}
 

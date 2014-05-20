@@ -173,23 +173,25 @@ public class DcClient extends DCStation{
 					// ignore
 				}
 				byte[] output;
-				synchronized(kh) {
-					byte[] message;
-					/**
-					 *  Make sure that there are enough connections and test if we planned to send an actual message in the upcoming round. 
-					 *  This prevents stations from broadcasting messages once the number of connections drops below
-					 *  the minimum. If too little connections are available, then the station
-					 *  will only send empty messages
-					 */
-					if(kh.approved() && nextScheduledRound == nextRound) {
-						message = mb.getMessage();
-					} else {
-						message = new byte[DCPackage.PAYLOAD_SIZE - scheduler.getScheduleSize()];
-					}
-					Debugger.println(2, "[DcClient "+alias+"] Sending message " + Arrays.toString(message));
-					output = kh.getOutput(scheduler.getSchedule(), message);
-					Debugger.println(2, "[DcClient "+alias+"] Sending output " + Arrays.toString(output));
-					
+				synchronized(kh) { 
+					synchronized(net) {
+						byte[] message;
+						/**
+						 *  Make sure that there are enough connections. This prevents stations
+						 *  from broadcasting messages once the number of connections drops below
+						 *  the minimum. If too little connections are available then the station
+						 *  will only send empty messages
+						 */
+						if(kh.approved() && nextScheduledRound == nextRound) {
+							message = mb.getMessage();
+						} else {
+							message = new byte[DCPackage.PAYLOAD_SIZE - scheduler.getScheduleSize()];
+						}
+						Debugger.println(2, "[DcClient "+alias+"] Sending message " + Arrays.toString(message));
+						output = kh.getOutput(scheduler.getSchedule(), message, net.getStations());
+						Debugger.println(2, "[DcClient "+alias+"] Sending output " + Arrays.toString(output));
+						
+					} 
 				}
 				DCPackage pckg = new DCPackage(nextRound, output);
 				broadcast(pckg);

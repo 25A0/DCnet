@@ -2,6 +2,8 @@ package net;
 
 import java.util.ArrayList;
 import util.HashUtil;
+import java.util.Iterator;
+import java.util.Collection;
 import java.lang.IllegalStateException;
 
 public class Network {
@@ -47,7 +49,7 @@ public class Network {
 	 * Returns a shallow copy of all members in this network.
 	 */
 	public Collection<String> getStations() {
-		return new ArrayList<String>(this);
+		return new ArrayList<String>(stations);
 	}
 
 	/**
@@ -63,9 +65,9 @@ public class Network {
 		StringBuilder sb = new StringBuilder();
 		Iterator<String> it = stations.iterator();
 		while(it.hasNext()){
-			sb.add(it.next() + "\n");
+			sb.append(it.next() + "\n");
 		}
-		sb.add(stations.size());
-		return hu.digest(sb.toString());
+		sb.append(stations.size());
+		return hu.digest(sb.toString().getBytes());
 	}
 }
