@@ -2,8 +2,6 @@ package dc;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 import com.neilalexander.jnacl.crypto.salsa20;
 
@@ -11,10 +9,10 @@ import com.neilalexander.jnacl.crypto.salsa20;
 
 import dc.DCPackage;
 import cli.Debugger;
+import util.HashUtil;
 
 public class KeyHandler {
-	private static MessageDigest md;
-	private static final String HASH_ALG = "SHA-256";
+	private static HashUtil hu = new HashUtil(HashUtil.SHA_256);
 	public static final int KEY_SIZE = 32;
 	// Nonce size must not be larger than key size.
 	public static final int NONCE_SIZE = 8;
@@ -25,17 +23,6 @@ public class KeyHandler {
 
 	private int numKeys;
 
-	static {
-		try {
-			md = MessageDigest.getInstance(HASH_ALG);
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			System.err.println("[KeyHandler] Severe: The algorithm "+HASH_ALG+" is not available. Make sure that your JRE provides an implementation of " + HASH_ALG);
-			e.printStackTrace();
-			System.exit(1);
-		}
-	}
-	
 	public KeyHandler(String alias) {
 		this.alias = alias;
 		keychain = new HashMap<String, KeyNoncePair>();
@@ -43,8 +30,7 @@ public class KeyHandler {
 
 	public void addKey(String foreignAlias)  {
 		String baseString = symmetricConcat(alias, foreignAlias);
-		md.update(baseString.getBytes());
-		byte[] hash = md.digest();
+		byte[] hash = hu.digest(baseString.getBytes());
 		addKey(foreignAlias, hash);
 	}
 	
