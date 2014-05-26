@@ -179,7 +179,12 @@ public class FingerprintScheduler implements Scheduler {
 		}
 	}
 
-	public boolean withdraw() {
+	/**
+	 * Returns whether or not to withdraw the reservation
+	 * attempt. The outcome of this function depends on the value
+	 * WITHDRAW_CHANCE. 
+	 */
+	private boolean withdraw() {
 		double value = random.nextDouble();
 		return value < WITHDRAW_CHANCE;
 	}

@@ -13,6 +13,8 @@ public class DCConfig {
 	// of a minimum size of 3.
 	public static final int MIN_NUM_KEYS = 2;
 
+	public static final int PACKAGE_SIZE = 1024;
+
 	public static final SchedulingMethod schedulingMethod = SchedulingMethod.FINGERPRINT;
 
 	public enum SchedulingMethod {

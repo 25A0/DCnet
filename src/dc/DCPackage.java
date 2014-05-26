@@ -9,7 +9,7 @@ public class DCPackage {
 	private byte[] payload;
 
 	// The size of the whole package, in bytes
-	public static final int PACKAGE_SIZE = 1024;
+	public static final int PACKAGE_SIZE = DCConfig.PACKAGE_SIZE;
 	// The number of bytes that make up the header of the package
 	public static final int HEADER_SIZE = 1;
 	// The number of bits used to represent the round number
