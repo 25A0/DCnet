@@ -58,7 +58,7 @@ public class DcServer extends DCStation {
 		public void run() {
 			while(!isClosed) {
 				DCPackage input = cb.receive();
-				input.combine(kh.getOutput(DCPackage.PAYLOAD_SIZE));
+				input.combine(kh.getOutput(DCPackage.PAYLOAD_SIZE, net.getStations()));
 				if(c != null) {
 					broadcast(input);
 				} else {

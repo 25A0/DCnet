@@ -182,7 +182,7 @@ public class DcClient extends DCStation{
 						 *  the minimum. If too little connections are available then the station
 						 *  will only send empty messages
 						 */
-						if(kh.approved() && nextScheduledRound == nextRound) {
+						if(kh.approved(net.getStations()) && nextScheduledRound == nextRound) {
 							message = mb.getMessage();
 						} else {
 							message = new byte[DCPackage.PAYLOAD_SIZE - scheduler.getScheduleSize()];
