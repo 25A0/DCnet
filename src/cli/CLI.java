@@ -7,6 +7,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileInputStream;
 
+import java.util.Set;
+
 /**
  * <h2>Command line interface</h2>
  * @author Moritz Neikes
@@ -88,6 +90,33 @@ public class CLI {
 				}
 			};
 
+			Action debugTrackAddAction = new Action() {
+				@Override
+				public void execute(ArgSet args) {
+					String tag = args.pop();
+					Debugger.trackAdd(tag);
+				}
+			};
+
+			Action debugTrackRemoveAction = new Action() {
+				@Override
+				public void execute(ArgSet args) {
+					String tag = args.pop();
+					Debugger.trackRemove(tag);
+				}
+			};
+
+			Action debugTrackListAction = new Action() {
+				@Override
+				public void execute(ArgSet args) {
+					Set<String> tags = Debugger.seenTags();
+					System.out.println("Seen tags:");
+					for(String s: tags) {
+						System.out.println("\t " + s);
+					}
+				}
+			};
+
 			Action scriptAction = new Action() {
 				@Override
 				public void execute(ArgSet args) {
@@ -133,8 +162,10 @@ public class CLI {
 			Action innerAction = new CommandAction(innerController);
 			
 			mapCommand("exit", exitAction);
-			mapAbbreviation('d', debugAction);
-			mapOption("debug", debugAction);
+			getContext("debug").mapCommand("level", debugAction);
+			getContext("debug").getContext("track").mapCommand("add", debugTrackAddAction);
+			getContext("debug").getContext("track").mapCommand("remove", debugTrackRemoveAction);
+			getContext("debug").getContext("track").mapCommand("list", debugTrackListAction);
 			mapAbbreviation('r', scriptAction);
 			mapCommand("run", scriptAction);
 			mapCommand("echo", echoAction);
