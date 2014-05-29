@@ -14,7 +14,7 @@ public class DcServer extends DCStation {
 	}
 
 	@Override
-	protected void addInput(byte[] message) {
+	protected void addInput(DCPackage message) {
 		cb.broadcast(message);
 	}
 	
@@ -29,7 +29,8 @@ public class DcServer extends DCStation {
 		@Override
 		public void run() {
 			while(!isClosed) {
-				byte[] input = cb.receive();
+				DCPackage input = cb.receive();
+				input.combine(kh.getOutput(DCPackage.PAYLOAD_SIZE));
 				if(c != null) {
 					broadcast(input);
 				} else {

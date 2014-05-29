@@ -21,16 +21,16 @@ public class Connection {
 		this.os = os;
 	}
 
-	public void send(byte[] bb) throws IOException {
-		os.write(bb);
+	public void send(DCPackage p) throws IOException {
+		os.write(p.toByteArray());
 	}
 	
-	public byte[] receiveMessage() throws IOException {
-		byte[] buffer = new byte[DCPackage.PAYLOAD_SIZE];
-		for(int i = 0; i < DCPackage.PAYLOAD_SIZE; i++) {
+	public DCPackage receiveMessage() throws IOException {
+		byte[] buffer = new byte[DCPackage.PACKAGE_SIZE];
+		for(int i = 0; i < DCPackage.PACKAGE_SIZE; i++) {
 			buffer[i] = (byte) is.read();
 		}
-		return buffer;
+		return DCPackage.getPackage(buffer);
 		// String s = Arrays.toString(buffer);
 		// Debugger.println(2, "[Connection] reading " + s);
 		// return DCPackage.getMessages(s)[0];

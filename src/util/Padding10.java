@@ -55,12 +55,14 @@ public class Padding10 {
 	 * Reverts 10 padding on a byte array.
 	 * That means: Starting at the end, we expect to find 0's until we find a 1.
 	 *
-	 * @return The content of the input in front of the padding, or null if the input only contains {@code 0}'s.
+	 * @return The content of the input in front of the padding, or {@code null} if the input was completely empty.
+	 * @throws  InputMismatchException in case the padding is malformed.
 	 */
-	public static byte[] revert10padding(byte[] input) {
-		// An empty input array doesn't contain any information.
+	public static byte[] revert10padding(byte[] input) throws InputMismatchException{
+		// An empty input array does not fulfil the requirements.
+		// Even an empty message would be padded to [1].
 		if(input.length == 0) {
-			return null;
+			throw new InputMismatchException("The provided input is malformed.");
 		}
 
 		int paddingStart = input.length - 1;

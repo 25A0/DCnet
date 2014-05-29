@@ -25,21 +25,20 @@ public class CLI_Test {
 		assertTrue(a1.pop().isEmpty());
 		
 		ArgSet a2 = new ArgSet("string another string 12 and 12");
-		assertTrue(a2.hasStringArg());
+		assertTrue(a2.hasArg());
 		assertFalse(a2.hasIntArg());
 		assertTrue(a2.pop().equals("string"));
-		assertTrue(a2.fetchString().equals("another"));
-		assertTrue(a2.hasStringArg());
+		assertTrue(a2.peek().equals("another"));
 		a2.pop();
-		assertTrue(a2.hasStringArg()); // since 12 triggers a String Arg, too
-		assertTrue(a2.hasIntArg());
-		a2.pop();
+		assertTrue(a2.hasArg());
 		assertFalse(a2.hasIntArg());
 		a2.pop();
 		assertTrue(a2.hasIntArg());
-		assertTrue(a2.hasStringArg());
+		assertTrue(a2.hasArg());
+		assertTrue(a2.peek().equals("12"));
 		a2.pop();
-		assertFalse(a2.hasStringArg());
+		assertTrue(a2.peek().equals("and"));
+		assertTrue(a2.hasArg());
 		assertFalse(a2.hasIntArg());
 	}
 	

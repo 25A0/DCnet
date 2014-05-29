@@ -7,17 +7,38 @@ import java.util.LinkedList;
 import dc.DCPackage;
 import util.Padding10;
 
+/**
+ * A buffer that is used by a DcClient to store messages that have yet to be sent.
+ */
 public class MessageBuffer extends OutputStream {
+		// The size of the payload in a package
 		private final int payloadSize;
-		private byte[] currentMessage;
+		// The size of a message.
+		private final int messageSize;
+		// The message that was sent most recently but was not succesfully delivered yet
+		private byte[] pendingMessage;
+		// A buffer that holds all unsent messages
 		private final LinkedList<byte[]> messageBuffer;
+		
+		// A pointer that points to the first free byte in the current message
 		private int writePointer;
+		// The message that is currently build up from user input
+		private byte[] currentMessage;
 
-		public MessageBuffer() {
+		/**
+		 * Initializes the messageBuffer for a given message size.
+		 * The message size does not need to care about padding 
+		 * (i.e. if packages have a payload of 1024 bytes, set payloadSize to 1024
+		 * and the MessageBuffer will reserve one byte for padding, leaving room 
+		 * for 1023 byte messages)
+		 * @param  payloadSize The size of the payload in bytes
+		 */
+		public MessageBuffer(int payloadSize) {
 			messageBuffer = new LinkedList<byte[]>();
 			// Subtract 1 for 10 padding
-			payloadSize = DCPackage.PAYLOAD_SIZE - 1;
-			currentMessage = new byte[payloadSize];
+			this.payloadSize = payloadSize;
+			this.messageSize = payloadSize - 1;
+			currentMessage = new byte[messageSize];
 			writePointer = 0;
 		}
 
@@ -27,39 +48,84 @@ public class MessageBuffer extends OutputStream {
 		}
 		
 		public synchronized void write(byte b){
-			// Debugger.println(2, "[DummyConnection] writing " + (char)b);
 			currentMessage[writePointer] = b;
 			writePointer++;
-			if(writePointer >= payloadSize) {
+			if(writePointer >= messageSize) {
 				synchronized(messageBuffer) {
 					messageBuffer.add(currentMessage);
 				}
-				currentMessage = new byte[payloadSize];
+				currentMessage = new byte[messageSize];
 				writePointer = 0;
 			}
 		}
 
-		public synchronized boolean hasMessage() {
-			return messageBuffer.isEmpty();
-		}
-		
+		/**
+		 * Returns the next message to be sent. This is either a pending message that was sent earlier but wasn't delivered succesfully (e.g. because of a collision), or the content of the current message, or the first message from the message buffer.
+		 * @return A byte array that holds the next message to be sent.
+		 */
 		public synchronized byte[] getMessage() {
-			if(!messageBuffer.isEmpty()) {
+			if(pendingMessage != null) {
+				// Padding has already been applied earlier, so we can just return the pending message.
+				return pendingMessage;
+			} else if(!messageBuffer.isEmpty()) {
 				// Fetch the last message from the buffer and apply padding
-				return Padding10.apply10padding(messageBuffer.poll(), DCPackage.PAYLOAD_SIZE);	
+				pendingMessage = Padding10.apply10padding(messageBuffer.poll(), payloadSize);	
+				return pendingMessage;
 			} else if(writePointer > 0) {
 				// Only in this case we have to apply padding
 				synchronized(this) {
-					byte[] message = Padding10.apply10padding(currentMessage, writePointer, DCPackage.PAYLOAD_SIZE);
-					currentMessage = new byte[payloadSize];
+					byte[] message = Padding10.apply10padding(currentMessage, writePointer, payloadSize);
+					currentMessage = new byte[messageSize];
 					writePointer = 0;
+					pendingMessage = message;
 					return message;
 				}
 			}
 			// This catches everything that was not caught by previous conditions
 			// We do not apply padding since the message is meant to be _empty_.
-			return new byte[DCPackage.PAYLOAD_SIZE];
+			// We do not send a pending message, either.
+			return new byte[payloadSize];
 				
+		}
+
+		/**
+		 * Checks whether there is a pending message in the message buffer.
+		 * This is the case if we sent a message earlier that didn't return properly as
+		 * output of a round yet.
+		 * @return true if there is a message
+		 */
+		public boolean hasPendingMessage() {
+			return pendingMessage != null;
+		}
+
+		/**
+		 * Confirms that the currently pending message has been succesfully delivered.
+		 */
+		public void confirmMessage() {
+			if(pendingMessage == null) {
+				throw new IllegalStateException("Message was confirmed although messageBuffer was not waiting for a confirmation.");
+			} else {
+				pendingMessage = null;
+			}
+		}
+
+		/**
+		 * Compares a given message with the currently pending message to check for collision artifacts.
+		 * @param  message The outcome of the current round that is supposed to equal the pending message
+		 * @return         true if the given message equals the pending message, false otherwise.
+		 */
+		public boolean compareMessage(byte[] message) {
+			if(pendingMessage == null) {
+				throw new IllegalStateException("There is no pending message to compare the given message with");
+			}
+			if(message.length != pendingMessage.length) {
+				return false;
+			} else {
+				for(int i = 0; i < pendingMessage.length; i++) {
+					if(pendingMessage[i] != message[i]) return false;
+				}
+				return true;
+			}
 		}
 
 	}

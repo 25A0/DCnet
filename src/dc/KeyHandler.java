@@ -72,11 +72,21 @@ public class KeyHandler {
 		return nextKeyMix(length);		
 	}
 	
-	public byte[] getOutput(byte[] message) {
-		byte[] output = new byte[message.length];
-		byte[] currentKeyMix = nextKeyMix(message.length);
+	/**
+	 * Turns plain messages into encrypted output
+	 * @param  scheduling The byte array of scheduling information
+	 * @param  message    The byte array containing the message payload
+	 * @return            A byte array that contains the encrypted concatenation of both inputs
+	 */
+	public byte[] getOutput(byte[] scheduling, byte[] message) {
+		int length = scheduling.length + message.length;
+		byte[] output = new byte[length];
+		byte[] currentKeyMix = nextKeyMix(length);
+		for(int i = 0; i < scheduling.length; i++) {
+			output[i] = (byte) (scheduling[i] ^ currentKeyMix[i]);
+		}
 		for(int i = 0; i < message.length; i++) {
-			output[i] = (byte) (message[i] ^ currentKeyMix[i % currentKeyMix.length]);
+			output[i + scheduling.length] = (byte) (message[i] ^ currentKeyMix[i % currentKeyMix.length]);
 		}
 		return output;
 	}

@@ -14,17 +14,22 @@ import java.util.LinkedList;
 
 public class ConnectionBundle {
 	private final ArrayList<ConnectionHandler> chl;
-	private int remaining, connections;
-	private byte[] currentInput;
+	private int connections;
+	
+	private DCPackage pendingPackage;
+	private int remaining;	
 
 	private boolean isClosed = false;
 	private final Semaphore inputAvailable;
-	private final LinkedList<byte[]> inputBuffer;
-	
+
+	private final LinkedList<DCPackage> inputBuffer;
+		
+
 	/**
 	 * This Semaphore is used to protect fields that are sensible in terms of concurrency
 	 */
 	private final Semaphore accessSemaphore;
+
 	
 	public ConnectionBundle() {
 		chl = new ArrayList<ConnectionHandler>();
@@ -34,17 +39,15 @@ public class ConnectionBundle {
 		 */
 		accessSemaphore = new Semaphore(1);
 
-		inputBuffer = new LinkedList<byte[]>();
+		inputBuffer = new LinkedList<DCPackage>();
 		inputAvailable = new Semaphore(0);
 		
-		currentInput = new byte[DCPackage.PAYLOAD_SIZE];
-
 		connections = 0;
-		remaining = 0;
 	}
 	
 	public void addConnection(Connection c) {
 		Debugger.println(2, "[ConnectionBundle] New connection to " + c.toString());
+		
 		accessSemaphore.acquireUninterruptibly();
 			ConnectionHandler ch = new ConnectionHandler(c);
 			chl.add(ch);
@@ -62,7 +65,7 @@ public class ConnectionBundle {
 		accessSemaphore.release();
 	}
 	
-	public void broadcast(byte[] message) {
+	public void broadcast(DCPackage message) {
 		for(ConnectionHandler ch: chl) {
 			try{
 				ch.c.send(message);
@@ -88,41 +91,50 @@ public class ConnectionBundle {
 		}
 	}
 	
-	public byte[] receive() {
+	public DCPackage receive() {
 		inputAvailable.acquireUninterruptibly();
 		return inputBuffer.pop();
 	}
 
-	private void reset() {
-		currentInput = new byte[DCPackage.PAYLOAD_SIZE];
-
-		// We need to read connections outputs before this round is complete
-		// i.e.: we have to receive a message from each station that we're connected
-		// to
-		remaining = connections;
-	}
-
 	/**
-	 * Adds bytes to the input of the current round.
+	 * Adds a package to the input of the current round.
 	 * @param input The input to be added
 	 */
-	private void addInput(byte[] input) {
-		if(input.length != currentInput.length) {
-			throw new InputMismatchException("[ConnectionBundle] The current input has length " + currentInput.length + " but the provided input has length " + input.length + ".");
+	private void addInput(DCPackage input) {
+		if(input.getPayload().length != DCPackage.PAYLOAD_SIZE) {
+			throw new InputMismatchException("The provided input has length " + input.getPayload().length + " but should be " + DCPackage.PAYLOAD_SIZE);
 		} else {
-			for(int i = 0; i < currentInput.length; i++) {
-				currentInput[i] ^= input[i];
+			int round = input.getNumber();
+			if(pendingPackage == null) {
+				pendingPackage = input;
+			} else {
+				pendingPackage.combine(input);
 			}
 			remaining--;
 			Debugger.println(2, "[ConnectionBundle] Remaining messages: " + remaining);
 			if(remaining == 0) {
-				Debugger.println(2, "[ConnectionBundle] Composed input: " + Arrays.toString(currentInput));
-				inputBuffer.add(currentInput);
+				Debugger.println(2, "[ConnectionBundle] Composed input: " + pendingPackage.toString());
+				inputBuffer.add(pendingPackage);
 				inputAvailable.release();
 				
-				reset();
+				pendingPackage = null;
+				remaining = connections;
 			}
 		}
+	}
+
+	/**
+	 * Checks whether a given number is in between two included bounds, in modulo {@code n}
+	 * @param  a The lower bound
+	 * @param  b The upper bound
+	 * @param  x The number to be tested
+	 * @param  n modulo
+	 * @return   if {@code x} is in between {@code [a, b]} in modulo {@code n}
+	 */
+	private boolean inBetweenMod(int a, int b, int x, int n) {
+		if(b < a) b += n;
+		if(x < a) x += n;
+		return a <= x && x <= b;
 	}
 
 
@@ -141,7 +153,7 @@ public class ConnectionBundle {
 		@Override
 		public void run() {
 			while(!isClosed) {
-				byte[] input = new byte[DCPackage.PAYLOAD_SIZE];
+				DCPackage input;
 				try {
 					input = c.receiveMessage();
 					accessSemaphore.acquireUninterruptibly();
@@ -153,4 +165,5 @@ public class ConnectionBundle {
 			}
 		}
 	}
+
 }
