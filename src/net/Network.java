@@ -5,6 +5,7 @@ import util.HashUtil;
 import java.util.Iterator;
 import java.util.Collection;
 import java.lang.IllegalStateException;
+import java.lang.IllegalArgumentException;
 
 public class Network {
 	private static HashUtil hu = new HashUtil(HashUtil.SHA_256);
@@ -12,6 +13,35 @@ public class Network {
 
 	public Network() {
 		stations = new ArrayList<String>();
+	}
+
+	/**
+	 * Initialises this network with a given set of stations. The provided list
+	 * has to be sorted ascending according to {@code String.comareTo}.
+	 * @param  stations              The set of stations that are part of this network
+	 * @throws IllegalArgumentException In case the provided list is not sorted.
+	 */
+	public synchronized void initialise(Collection<String> stations) throws IllegalArgumentException {
+		stations.clear();
+		if(stations.size() == 0) return;
+		// ensure that the collection is sorted
+		Iterator<String> it = stations.iterator();
+		String a = it.next();
+		while(it.hasNext()) {
+			String b = it.next();
+			if(b.compareTo(a) < 0) {
+				throw new IllegalArgumentException("The provided list is not sorted.");
+			}
+			a = b;
+		}
+		this.stations.addAll(stations);
+	}
+
+	/**
+	 * Removes all stations from this network.
+	 */
+	public void clear() {
+		stations.clear();
 	}
 
 	/**
@@ -69,5 +99,23 @@ public class Network {
 		}
 		sb.append(stations.size());
 		return hu.digest(sb.toString().getBytes());
+	}
+
+	/**
+	 * Checks whether this network contains a certain station.
+	 * @param  station The alias of the station of question.
+	 * @return         Whether this network contains the given alias.
+	 */
+	public synchronized boolean contains(String station) {
+		Iterator<String> it = stations.iterator();
+		while(it.hasNext()) {
+			String next = it.next();
+			if(next.equals(station)) {
+				return true;
+			} else if(next.compareTo(station) > 0) {
+				return false;
+			}
+		}
+		return false;
 	}
 }

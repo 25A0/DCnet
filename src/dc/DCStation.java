@@ -10,10 +10,13 @@ import dc.MessageBuffer;
 
 import net.Connection;
 import net.Network;
+import net.NetStatPackage;
+import net.PackageListener;
 
 import cli.Debugger;
 
-public abstract class DCStation {
+
+public abstract class DCStation implements PackageListener{
 	protected Connection c;
 	protected final String alias;
 	protected final KeyHandler kh;
@@ -29,7 +32,6 @@ public abstract class DCStation {
 		net = new Network();
 		kh = new KeyHandler(alias);
 		connectionSemaphore = new Semaphore(0);
-		(new Thread(new InputReader())).start();
 		Debugger.println(2, "[DCStation] Station " + alias + " started");
 	}
 
@@ -40,10 +42,17 @@ public abstract class DCStation {
 	protected void broadcast(DCPackage output) {	
 		try{
 			c.send(output);
-			
 		} catch (IOException e) {
-			Debugger.println(1, e.getMessage());
+			connectionLost();
 		}	
+	}
+
+	protected void broadcast(NetStatPackage output) {
+		try {
+			c.send(output);
+		} catch(IOException e) {
+			connectionLost();
+		}
 	}
 	
 	public void close() throws IOException {
@@ -53,13 +62,16 @@ public abstract class DCStation {
 		isClosed = true;
 	}
 	
+	public boolean isClosed() {
+		return isClosed;
+	}
+	
 	public void setConnection(Connection c) {
 		if(this.c != null) {
 			connectionSemaphore.acquireUninterruptibly();
-			connectionSemaphore.acquireUninterruptibly();
+			net.clear();
 		}
 		this.c = c;
-		connectionSemaphore.release();
 		connectionSemaphore.release();
 
 	}
@@ -68,28 +80,12 @@ public abstract class DCStation {
 		return kh;
 	}
 
-	protected abstract void addInput(DCPackage input);
-
-	/**
-	 * This Runnable will constantly read incoming messages
-	 * and forward them to {@code addInput}.
-	 */
-	private class InputReader implements Runnable {
-
-		@Override
-		public void run() {
-			while(!isClosed) {
-				connectionSemaphore.acquireUninterruptibly();
-				try {
-					DCPackage input = c.receiveMessage();
-					addInput(input);
-				} catch (IOException e) {
-					Debugger.println(1, e.getMessage());
-				}
-				connectionSemaphore.release();
-			}
-		}
-
-		
+	@Override
+	public void connectionLost() {
+		c = null;
+		connectionSemaphore.acquireUninterruptibly();
+		System.out.println("[DcStation " + alias + "] Connection lost.");
 	}
+
+
 }

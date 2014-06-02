@@ -146,8 +146,8 @@ public class MultiStationInterface extends CLC {
 
 	private void connectLocal(DcServer server, DCStation station) {
 		DummyChannel chA = new DummyChannel(), chB = new DummyChannel();
-		Connection c1 = new DummyConnection(chA.getInputStream(), chB.getOutputStream());
-		Connection c2 = new DummyConnection(chB.getInputStream(), chA.getOutputStream());
+		Connection c1 = new DummyConnection(chA.getInputStream(), chB.getOutputStream(), station);
+		Connection c2 = new DummyConnection(chB.getInputStream(), chA.getOutputStream(), server);
 		station.setConnection(c1);
 		server.getCB().addConnection(c2);
 	}
@@ -155,7 +155,7 @@ public class MultiStationInterface extends CLC {
 	private void connect(String url, int port, DCStation station) {
 		try {
 			Socket s = new Socket(url, port);
-			NetworkConnection nc = new NetworkConnection(s);
+			NetworkConnection nc = new NetworkConnection(s, station);
 			station.setConnection(nc);
 		} catch (UnknownHostException e) {
 			System.out.println("Connection to host failed: The host with the address " + url + ":" + port + " was not found.");

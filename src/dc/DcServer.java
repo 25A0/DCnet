@@ -2,6 +2,7 @@ package dc;
 
 import net.Connection;
 import net.NetworkConnection;
+import net.NetStatPackage;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -29,6 +30,7 @@ public class DcServer extends DCStation {
 		super(alias);
 		cb = new ConnectionBundle();
 		(new Thread(new InputReader())).start();
+		(new Thread(new NetStatInputListener())).start();
 	}
 
 	public ConnectionBundle getCB() {
@@ -36,7 +38,14 @@ public class DcServer extends DCStation {
 	}
 
 	@Override
-	protected void addInput(DCPackage message) {
+	public void addInput(DCPackage message) {
+		cb.broadcast(message);
+	}
+
+	@Override
+	public void addInput(NetStatPackage message) {
+		message.apply(net);
+		cb.handle(message);
 		cb.broadcast(message);
 	}
 
@@ -57,12 +66,29 @@ public class DcServer extends DCStation {
 		@Override
 		public void run() {
 			while(!isClosed) {
-				DCPackage input = cb.receive();
+				DCPackage input = cb.receiveDCPackage();
 				input.combine(kh.getOutput(DCPackage.PAYLOAD_SIZE, net.getStations()));
 				if(c != null) {
 					broadcast(input);
 				} else {
 					cb.broadcast(input);
+				}
+			}
+		}
+	}
+
+	private class NetStatInputListener implements Runnable {
+
+		@Override
+		public void run() {
+			while(!isClosed) {
+				NetStatPackage nsp = cb.receiveStatusPackage();
+				if(c != null) {
+					broadcast(nsp);
+				} else {
+					nsp.apply(net);
+					cb.handle(nsp);
+					cb.broadcast(nsp);
 				}
 			}
 		}
@@ -87,7 +113,9 @@ public class DcServer extends DCStation {
 				servSock = new ServerSocket(port);
 				while(!isClosed) {
 					Socket s = servSock.accept();
-					cb.addConnection(new NetworkConnection(s));
+					NetworkConnection ncon = new NetworkConnection(s);
+					cb.addConnection(ncon);
+					ncon.send(new NetStatPackage.Snapshot(net.getStations()));
 				}
 				servSock.close();
 			} catch (IOException e) {

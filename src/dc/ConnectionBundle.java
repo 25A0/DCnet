@@ -8,22 +8,35 @@ import java.util.concurrent.Semaphore;
 import cli.Debugger;
 import dc.DCPackage;
 import net.Connection;
+import net.Network;
+import net.PackageListener;
+import net.NetStatPackage;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.LinkedList;
 
 public class ConnectionBundle {
 	private final ArrayList<ConnectionHandler> chl;
 	private int connections;
+	private int activeConnections;
+
+	/**
+	 * This HashMap contains all connections that are identified by an alias.
+	 */
+	private HashMap<String, ConnectionHandler> identifiedConnections;
 	
 	private DCPackage pendingPackage;
 	private int remaining;	
 
 	private boolean isClosed = false;
-	private final Semaphore inputAvailable;
 
 	private final LinkedList<DCPackage> inputBuffer;
+	private final Semaphore inputAvailable;
+
+	private final LinkedList<NetStatPackage> netStatBuffer;
+	private final Semaphore statusAvailable;
 		
 
 	/**
@@ -42,8 +55,12 @@ public class ConnectionBundle {
 
 		inputBuffer = new LinkedList<DCPackage>();
 		inputAvailable = new Semaphore(0);
+
+		netStatBuffer = new LinkedList<NetStatPackage>();
+		statusAvailable = new Semaphore(0);
 		
 		connections = 0;
+		activeConnections = 0;
 	}
 	
 	public void addConnection(Connection c) {
@@ -51,19 +68,45 @@ public class ConnectionBundle {
 		
 		accessSemaphore.acquireUninterruptibly();
 			ConnectionHandler ch = new ConnectionHandler(c);
+			c.setListener(ch);
 			chl.add(ch);
-			connections++;
-			remaining++;
-			(new Thread(ch)).start();
+			connections ++;
 		accessSemaphore.release();
 	}
 	
-	public void removeConnection(Connection c) {
+	public void removeConnection(ConnectionHandler ch) {
 		accessSemaphore.acquireUninterruptibly();
 			connections--;
-			remaining--;
-			chl.remove(c);
+			chl.remove(ch);
+			if(ch.isActive) {
+				// Communicate this to the server
+				NetStatPackage nsp = new NetStatPackage.Leaving(ch.alias);
+				netStatBuffer.add(nsp);
+				statusAvailable.release();
+			}
 		accessSemaphore.release();
+	}
+
+	public void handle(NetStatPackage message) {
+		if(message.getClass().equals(NetStatPackage.Joining.class)) {
+			String alias = ((NetStatPackage.Joining) message).getStation();
+			if(identifiedConnections.containsKey(alias)) {
+				ConnectionHandler ch = identifiedConnections.get(alias);
+				ch.setStatus(true);
+				activeConnections++;
+			}
+		} else if(message.getClass().equals(NetStatPackage.Leaving.class)) {
+			String alias = ((NetStatPackage.Leaving) message).getStation();
+			if(identifiedConnections.containsKey(alias)) {
+				ConnectionHandler ch = identifiedConnections.get(alias);
+				ch.setStatus(false);
+				activeConnections--;
+				// everyone will resend their messages.
+				resetRound();
+			}
+		} 
+		// We don't handle snapshot messages. 
+		
 	}
 	
 	public void broadcast(DCPackage message) {
@@ -72,6 +115,16 @@ public class ConnectionBundle {
 				ch.c.send(message);
 				
 			} catch (IOException e) {
+				Debugger.println(1, e.getMessage());
+			}
+		}
+	}
+
+	public void broadcast(NetStatPackage message) {
+		for(ConnectionHandler ch: chl) {
+			try {
+				ch.c.send(message);
+			} catch(IOException e) {
 				Debugger.println(1, e.getMessage());
 			}
 		}
@@ -94,9 +147,14 @@ public class ConnectionBundle {
 		}
 	}
 	
-	public DCPackage receive() {
+	public DCPackage receiveDCPackage() {
 		inputAvailable.acquireUninterruptibly();
 		return inputBuffer.pop();
+	}
+
+	public NetStatPackage receiveStatusPackage() {
+		statusAvailable.acquireUninterruptibly();
+		return netStatBuffer.pop(); 
 	}
 
 	/**
@@ -114,16 +172,20 @@ public class ConnectionBundle {
 				pendingPackage.combine(input);
 			}
 			remaining--;
-			Debugger.println(2, "[ConnectionBundle] Remaining messages: " + remaining);
+			Debugger.println("message-cycle", "[ConnectionBundle] Remaining messages: " + remaining);
 			if(remaining == 0) {
 				Debugger.println(2, "[ConnectionBundle] Composed input: " + pendingPackage.toString());
 				inputBuffer.add(pendingPackage);
 				inputAvailable.release();
 				
-				pendingPackage = null;
-				remaining = connections;
+				resetRound();
 			}
 		}
+	}
+
+	private void resetRound() {
+		pendingPackage = null;
+		remaining = activeConnections;	
 	}
 
 	/**
@@ -141,9 +203,11 @@ public class ConnectionBundle {
 	}
 
 
-	private class ConnectionHandler implements Runnable {
-		private boolean isClosed = false;
+	private class ConnectionHandler implements PackageListener {
 		public final Connection c;
+
+		public String alias = null;
+		public boolean isActive = false;
 
 		public ConnectionHandler(Connection c) {
 			this.c = c;
@@ -154,19 +218,33 @@ public class ConnectionBundle {
 			isClosed = true;
 		}
 
+		public void setStatus(boolean isActive) {
+			Debugger.println("network", "[ConnectionBundle] Station " + alias + " is now " + (isActive?"active.":"inactive."));
+			this.isActive = isActive;
+		}
+
 		@Override
-		public void run() {
-			while(!isClosed) {
-				DCPackage input;
-				try {
-					input = c.receiveMessage();
-					accessSemaphore.acquireUninterruptibly();
-					addInput(input);
-					accessSemaphore.release();
-				} catch (IOException e) {
-					Debugger.println(1, e.getMessage());
-				}
+		public void addInput(DCPackage message) {
+			// Refuse message if this connection isn't active.
+			if(!isActive) return;
+			accessSemaphore.acquireUninterruptibly();
+			addInput(message);
+			accessSemaphore.release();
+		}
+
+		@Override
+		public void addInput(NetStatPackage message) {
+			if(!isActive && message.getClass().equals(NetStatPackage.Joining.class)) {
+				// We now know which alias belongs to this connection.
+				identifiedConnections.put(((NetStatPackage.Joining) message).getStation(), this);
 			}
+			netStatBuffer.add(message);
+			statusAvailable.release();
+		}
+
+		@Override
+		public void connectionLost() {
+			removeConnection(this);
 		}
 	}
 
