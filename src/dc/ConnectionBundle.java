@@ -22,6 +22,8 @@ public class ConnectionBundle {
 	private int connections;
 	private int activeConnections;
 
+	private int currentRound;
+
 	/**
 	 * This HashMap contains all connections that are identified by an alias.
 	 */
@@ -61,6 +63,8 @@ public class ConnectionBundle {
 		
 		connections = 0;
 		activeConnections = 0;
+
+		currentRound = 0;
 	}
 	
 	public void addConnection(Connection c) {
@@ -130,6 +134,11 @@ public class ConnectionBundle {
 		}
 	}
 
+	public void pulse() {
+		DCPackage pulsePackage = new DCPackage(currentRound, new byte[DcPackage.PAYLOAD_SIZE]);
+		broadcast(pulsePackage);
+	}
+
 	public void close() throws IOException {
 		for(ConnectionHandler ch: chl) {
 			ch.close();
@@ -166,6 +175,10 @@ public class ConnectionBundle {
 			throw new InputMismatchException("The provided input has length " + input.getPayload().length + " but should be " + DCPackage.PAYLOAD_SIZE);
 		} else {
 			int round = input.getNumber();
+			if(round != currentRound) {
+				// we refuse this package.
+				return;
+			}
 			if(pendingPackage == null) {
 				pendingPackage = input;
 			} else {
@@ -177,7 +190,8 @@ public class ConnectionBundle {
 				Debugger.println(2, "[ConnectionBundle] Composed input: " + pendingPackage.toString());
 				inputBuffer.add(pendingPackage);
 				inputAvailable.release();
-				
+				currentRound = (pendingPackage.getNumber()+1) % pendingPackage.getNumberRange();
+
 				resetRound();
 			}
 		}

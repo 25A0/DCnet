@@ -111,6 +111,12 @@ public class DcServer extends DCStation {
 			while(!isClosed) {
 				try {
 					Thread.sleep(INTERVAL);
+					// In case this is not the highest server in the hierarchy, 
+					// this server is not responsible for initializing a conversation.
+					if(c != null) return;
+					// else we let the connectionBundle send out a pulse to all 
+					// connected stations.
+					cb.
 				} catch(InterruptedException e) {
 					continue;
 				}
