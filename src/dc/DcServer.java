@@ -116,7 +116,7 @@ public class DcServer extends DCStation {
 					if(c != null) return;
 					// else we let the connectionBundle send out a pulse to all 
 					// connected stations.
-					cb.
+					cb.pulse();
 				} catch(InterruptedException e) {
 					continue;
 				}

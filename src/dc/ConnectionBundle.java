@@ -135,7 +135,7 @@ public class ConnectionBundle {
 	}
 
 	public void pulse() {
-		DCPackage pulsePackage = new DCPackage(currentRound, new byte[DcPackage.PAYLOAD_SIZE]);
+		DCPackage pulsePackage = new DCPackage(currentRound, new byte[DCPackage.PAYLOAD_SIZE]);
 		broadcast(pulsePackage);
 	}
 
