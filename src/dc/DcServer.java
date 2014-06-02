@@ -11,6 +11,8 @@ import java.net.Socket;
 public class DcServer extends DCStation {
 	private ConnectionBundle cb;
 
+	private boolean needsPulse;
+
 	/**
 	 * Starts a DcServer that is able to handle network traffic
 	 * @param  alias The alias that identifies this server
@@ -29,8 +31,10 @@ public class DcServer extends DCStation {
 	public DcServer(String alias) {
 		super(alias);
 		cb = new ConnectionBundle();
+		needsPulse = true;
 		(new Thread(new InputReader())).start();
 		(new Thread(new NetStatInputListener())).start();
+		(new Thread(new Pulser())).start();
 	}
 
 	public ConnectionBundle getCB() {
@@ -68,6 +72,7 @@ public class DcServer extends DCStation {
 			while(!isClosed) {
 				DCPackage input = cb.receiveDCPackage();
 				input.combine(kh.getOutput(DCPackage.PAYLOAD_SIZE, net.getStations()));
+				needsPulse = false;
 				if(c != null) {
 					broadcast(input);
 				} else {
@@ -89,6 +94,25 @@ public class DcServer extends DCStation {
 					nsp.apply(net);
 					cb.handle(nsp);
 					cb.broadcast(nsp);
+				}
+			}
+		}
+	}
+
+	/**
+	 * This class sends an empty round to all connected stations 
+	 * to start the conversation. This only needs to happen once
+	 * to get the network going.
+	 */
+	private class Pulser implements Runnable {
+		private static final long INTERVAL = 3000;
+		@Override
+		public void run() {
+			while(!isClosed) {
+				try {
+					Thread.sleep(INTERVAL);
+				} catch(InterruptedException e) {
+					continue;
 				}
 			}
 		}

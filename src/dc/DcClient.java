@@ -37,10 +37,7 @@ public class DcClient extends DCStation{
 	// takes longer to finish
 	public static final long WAIT_TIME = 1000;
 
-	// Keeps track of whether this station is actively participating in the
-	// network or just listening.
-	public boolean isActive = false;
-
+	
 	
 	protected final MessageBuffer mb;
 
@@ -162,21 +159,6 @@ public class DcClient extends DCStation{
 		}
 	}
 
-	public void setState(boolean active) throws IOException {
-		if(c == null) {
-			System.out.println("[DcClient " + alias +"] Can not switch states without being connected to a server.");
-			return;
-		}
-		if(isActive == active) {
-			System.out.println("[DcClient " + alias +"] This client is already in " + (isActive?"active":"idle") + " state.");
-		} else if(active) {
-			NetStatPackage nsp = new NetStatPackage.Joining(alias);
-			c.send(nsp);
-		} else {
-			NetStatPackage nsp = new NetStatPackage.Leaving(alias);
-			c.send(nsp);
-		}
-	}
 	
 
 	private void sendOutput() {

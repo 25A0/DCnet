@@ -294,7 +294,7 @@ public class MultiStationInterface extends CLC {
 	private class StationInterface extends CLC {
 		private final DCStation station;
 				
-		private Action close, connect, connectLocal;
+		private Action close, connect, connectLocal, state;
 		
 		public StationInterface(DCStation s) {		
 			this.station = s;
@@ -341,6 +341,23 @@ public class MultiStationInterface extends CLC {
 					}
 				}
 			};
+
+			state = new Action() {
+				@Override
+				public void execute(ArgSet args) {
+					if(!args.hasArg()) {
+						System.out.println("Please specify the state that you want this station to switch to: \'active\' or \'inactive\'");
+					} else if(args.peek().equalsIgnoreCase("active")) {
+						args.pop();
+						station.setState(true);
+					} else if(args.peek().equalsIgnoreCase("inactive")) {
+						args.pop();
+						station.setState(false);
+					} else {
+						System.out.println("The provided parameter did not match one of the options \'active\' or \'inactive\'.");
+					}
+				}
+			};
 			
 			close = new Action() {
 				@Override
@@ -355,6 +372,7 @@ public class MultiStationInterface extends CLC {
 			
 			mapCommand("close", close);
 			mapCommand("connect", connect);
+			mapCommand("state", state);
 		}
 
 		

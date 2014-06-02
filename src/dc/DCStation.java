@@ -7,12 +7,10 @@ import java.util.LinkedList;
 import java.util.concurrent.Semaphore;
 
 import dc.MessageBuffer;
-
 import net.Connection;
 import net.Network;
 import net.NetStatPackage;
 import net.PackageListener;
-
 import cli.Debugger;
 
 
@@ -24,6 +22,10 @@ public abstract class DCStation implements PackageListener{
 	
 	protected boolean isClosed = false;
 	
+	// Keeps track of whether this station is actively participating in the
+	// network or just listening.
+	public boolean isActive = false;
+
 	
 	protected final Semaphore connectionSemaphore;
 
@@ -65,6 +67,23 @@ public abstract class DCStation implements PackageListener{
 	public boolean isClosed() {
 		return isClosed;
 	}
+	
+	public void setState(boolean active) {
+		if(c == null) {
+			System.out.println("[DcClient " + alias +"] Can not switch states without being connected to a server.");
+			return;
+		}
+		if(isActive == active) {
+			System.out.println("[DcClient " + alias +"] This client is already in " + (isActive?"active":"idle") + " state.");
+		} else if(active) {
+			NetStatPackage nsp = new NetStatPackage.Joining(alias);
+			broadcast(nsp);
+		} else {
+			NetStatPackage nsp = new NetStatPackage.Leaving(alias);
+			broadcast(nsp);
+		}
+	}
+	
 	
 	public void setConnection(Connection c) {
 		if(this.c != null) {
