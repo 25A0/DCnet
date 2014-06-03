@@ -115,7 +115,7 @@ public abstract class Connection {
 		if((header & (1 << 7)) != 0) {
 			return parseSnapshot(header, is);
 		} else {
-			boolean joining = (header & 1) != 0;
+			boolean joining = (header & 1) == 0;
 			byte[] alias = new byte[DCConfig.ALIAS_LENGTH];
 			is.read(alias);
 			if(joining) {

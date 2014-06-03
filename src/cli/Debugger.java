@@ -72,6 +72,7 @@ public class Debugger {
 		if(!trackedTags.containsKey(tag) && !trackedTags.remove(tag)) {
 			System.out.println("[Debugger] Tag " + tag + " was not being tracked.");	
 		} else {
+			trackedTags.remove(tag);
 			System.out.println("[Debugger] Tag " + tag + " is no longer tracked.");
 		}	
 	}

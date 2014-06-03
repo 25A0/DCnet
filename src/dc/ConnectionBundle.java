@@ -92,15 +92,17 @@ public class ConnectionBundle {
 	}
 
 	public void handle(NetStatPackage message) {
-		if(message.getClass().equals(NetStatPackage.Joining.class)) {
+		if(message instanceof NetStatPackage.Joining) {
 			String alias = ((NetStatPackage.Joining) message).getStation();
+			Debugger.println("network", "[ConnectionBundle] Station " + alias + " joined the network.");
 			if(identifiedConnections.containsKey(alias)) {
 				ConnectionHandler ch = identifiedConnections.get(alias);
 				ch.setStatus(true);
 				activeConnections++;
 			}
-		} else if(message.getClass().equals(NetStatPackage.Leaving.class)) {
+		} else if(message instanceof NetStatPackage.Leaving) {
 			String alias = ((NetStatPackage.Leaving) message).getStation();
+			Debugger.println("network", "[ConnectionBundle] Station " + alias + " left the network.");
 			if(identifiedConnections.containsKey(alias)) {
 				ConnectionHandler ch = identifiedConnections.get(alias);
 				ch.setStatus(false);
@@ -248,7 +250,7 @@ public class ConnectionBundle {
 
 		@Override
 		public void addInput(NetStatPackage message) {
-			if(!isActive && message.getClass().equals(NetStatPackage.Joining.class)) {
+			if(!isActive && message instanceof NetStatPackage.Joining) {
 				// We now know which alias belongs to this connection.
 				alias = ((NetStatPackage.Joining) message).getStation();
 				identifiedConnections.put(alias, this);
