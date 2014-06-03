@@ -98,7 +98,7 @@ public abstract class Connection {
 		}
 	}
 	
-	public DCPackage receiveDCPackage() throws IOException {
+	private DCPackage receiveDCPackage() throws IOException {
 		byte[] buffer = new byte[DCPackage.PACKAGE_SIZE];
 		for(int i = 0; i < DCPackage.PACKAGE_SIZE; i++) {
 			buffer[i] = (byte) is.read();
@@ -110,7 +110,7 @@ public abstract class Connection {
 	}
 
 	
-	public NetStatPackage receiveStatusPackage() throws IOException {
+	private NetStatPackage receiveStatusPackage() throws IOException {
 		byte header = (byte) is.read();
 		if((header & (1 << 7)) != 0) {
 			return parseSnapshot(header, is);

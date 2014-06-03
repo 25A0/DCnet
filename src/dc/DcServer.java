@@ -1,5 +1,7 @@
 package dc;
 
+import cli.Debugger;
+
 import net.Connection;
 import net.NetworkConnection;
 import net.NetStatPackage;
@@ -117,6 +119,7 @@ public class DcServer extends DCStation {
 					// else we let the connectionBundle send out a pulse to all 
 					// connected stations.
 					cb.pulse();
+					Debugger.println("server", "[Info] Server " + alias + " sent pulse message.");
 				} catch(InterruptedException e) {
 					continue;
 				}

@@ -68,7 +68,7 @@ public class ConnectionBundle {
 	}
 	
 	public void addConnection(Connection c) {
-		Debugger.println(2, "[ConnectionBundle] New connection to " + c.toString());
+		Debugger.println("network", "[ConnectionBundle] New connection to " + c.toString());
 		
 		accessSemaphore.acquireUninterruptibly();
 			ConnectionHandler ch = new ConnectionHandler(c);
@@ -250,7 +250,9 @@ public class ConnectionBundle {
 		public void addInput(NetStatPackage message) {
 			if(!isActive && message.getClass().equals(NetStatPackage.Joining.class)) {
 				// We now know which alias belongs to this connection.
-				identifiedConnections.put(((NetStatPackage.Joining) message).getStation(), this);
+				alias = ((NetStatPackage.Joining) message).getStation();
+				identifiedConnections.put(alias, this);
+				Debugger.println("network", "[ConnectionHandler] One connection was identified as being " + alias);
 			}
 			netStatBuffer.add(message);
 			statusAvailable.release();
@@ -258,6 +260,7 @@ public class ConnectionBundle {
 
 		@Override
 		public void connectionLost() {
+			Debugger.println("network", "[ConnectionBundle] Lost connection to client");
 			removeConnection(this);
 		}
 	}

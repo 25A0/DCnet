@@ -135,11 +135,11 @@ public class DcClient extends DCStation{
 
 	@Override
 	public void addInput(NetStatPackage nsp) {
-		if(nsp.getClass().equals(NetStatPackage.Snapshot.class)) {
+		if(nsp instanceof NetStatPackage.Snapshot) {
 			synchronized(net) {
 				nsp.apply(net);
 			}
-		} else if (nsp.getClass().equals(NetStatPackage.Joining.class)) {
+		} else if (nsp instanceof NetStatPackage.Joining) {
 			synchronized(net) {
 				nsp.apply(net);
 				if(((NetStatPackage.Joining) nsp).getStation().equals(alias)) {
