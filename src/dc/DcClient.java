@@ -123,7 +123,7 @@ public class DcClient extends DCStation{
 			inputBuffer.add(inputPayload);
 			inputAvailable.release();
 		}
-		if(scheduler.addPackage(message)) {
+		if(isActive && scheduler.addPackage(message)) {
 			nextScheduledRound = scheduler.getNextRound();
 			Debugger.println("scheduling", "[DcClient "+alias+"] successfully scheduled slot: " + nextScheduledRound);	
 		}
@@ -137,24 +137,31 @@ public class DcClient extends DCStation{
 	public void addInput(NetStatPackage nsp) {
 		if(nsp instanceof NetStatPackage.Snapshot) {
 			synchronized(net) {
+				Debugger.println("network", "[DcClient " + alias + "] received Snapshot package");
 				nsp.apply(net);
 			}
 		} else if (nsp instanceof NetStatPackage.Joining) {
 			synchronized(net) {
 				nsp.apply(net);
-				if(((NetStatPackage.Joining) nsp).getStation().equals(alias)) {
+				String foreignAlias = ((NetStatPackage.Joining) nsp).getStation();
+				Debugger.println("network", "[DcClient " + alias + "] Station " + foreignAlias + " joined the network");
+				if(foreignAlias.equals(alias)) {
+					Debugger.println("network", "[DcClient " + alias + "] State changed to active");
 					isActive = true;
-				}
+				} 
 			}
 			//won't resend
 		} else {
 			synchronized(net) {
 				nsp.apply(net);
-			}
-			if(((NetStatPackage.Leaving) nsp).getStation().equals(alias)) {
-				isActive = false;
-			} else {
-				sendOutput();
+				String foreignAlias = ((NetStatPackage.Leaving) nsp).getStation();
+				Debugger.println("network", "[DcClient " + alias + "] Station " + foreignAlias + " left the network");
+				if(foreignAlias.equals(alias)) {
+					Debugger.println("network", "[DcClient " + alias + "] State changed to inactive");
+					isActive = false;
+				} else {
+					sendOutput();
+				}
 			}
 		}
 	}
@@ -165,7 +172,7 @@ public class DcClient extends DCStation{
 		// try{
 		// 	Thread.sleep(WAIT_TIME);
 		// } catch (InterruptedException e) {
-		// 	break;
+		// 	// duh
 		// }
 		if(isClosed()) return;
 		byte[] output;

@@ -27,7 +27,7 @@ public class ConnectionBundle {
 	/**
 	 * This HashMap contains all connections that are identified by an alias.
 	 */
-	private HashMap<String, ConnectionHandler> identifiedConnections;
+	private final HashMap<String, ConnectionHandler> identifiedConnections;
 	
 	private DCPackage pendingPackage;
 	private int remaining;	
@@ -63,6 +63,7 @@ public class ConnectionBundle {
 		
 		connections = 0;
 		activeConnections = 0;
+		identifiedConnections = new HashMap<String, ConnectionHandler>();
 
 		currentRound = 0;
 	}
@@ -138,6 +139,8 @@ public class ConnectionBundle {
 
 	public void pulse() {
 		DCPackage pulsePackage = new DCPackage(currentRound, new byte[DCPackage.PAYLOAD_SIZE]);
+		currentRound = (currentRound+1) % pulsePackage.getNumberRange();
+		resetRound();
 		broadcast(pulsePackage);
 	}
 
@@ -172,24 +175,30 @@ public class ConnectionBundle {
 	 * Adds a package to the input of the current round.
 	 * @param input The input to be added
 	 */
-	private void addInput(DCPackage input) {
+	private void addBundleInput( DCPackage input) {
 		if(input.getPayload().length != DCPackage.PAYLOAD_SIZE) {
 			throw new InputMismatchException("The provided input has length " + input.getPayload().length + " but should be " + DCPackage.PAYLOAD_SIZE);
 		} else {
 			int round = input.getNumber();
 			if(round != currentRound) {
 				// we refuse this package.
+				Debugger.println("protocol", "[ConnectionBundle] Refusing package because of wrong round number. Is " + round + " but should be " + currentRound);
 				return;
 			}
 			if(pendingPackage == null) {
 				pendingPackage = input;
 			} else {
-				pendingPackage.combine(input);
+				try {
+					pendingPackage.combine(input);
+				} catch(InputMismatchException e) {
+					Debugger.println("protocol", "[ConnectionBundle] An error occurred while trying to combine a new package with the existing package.");
+					return;
+				}
 			}
 			remaining--;
-			Debugger.println("message-cycle", "[ConnectionBundle] Remaining messages: " + remaining);
+			Debugger.println("protocol", "[ConnectionBundle] Remaining messages: " + remaining);
 			if(remaining == 0) {
-				Debugger.println(2, "[ConnectionBundle] Composed input: " + pendingPackage.toString());
+				Debugger.println("protocol", "[ConnectionBundle] Round " + currentRound + " is completed.");
 				inputBuffer.add(pendingPackage);
 				inputAvailable.release();
 				currentRound = (pendingPackage.getNumber()+1) % pendingPackage.getNumberRange();
@@ -242,9 +251,12 @@ public class ConnectionBundle {
 		@Override
 		public void addInput(DCPackage message) {
 			// Refuse message if this connection isn't active.
-			if(!isActive) return;
+			if(!isActive) {
+				Debugger.println("protocol", "[ConnectionBundle] Refusing package since station is not in active state");
+				return;
+			}
 			accessSemaphore.acquireUninterruptibly();
-			addInput(message);
+			addBundleInput(message);
 			accessSemaphore.release();
 		}
 
@@ -261,8 +273,8 @@ public class ConnectionBundle {
 		}
 
 		@Override
-		public void connectionLost() {
-			Debugger.println("network", "[ConnectionBundle] Lost connection to client");
+		public void connectionLost(String message) {
+			Debugger.println("network", "[ConnectionBundle] Lost connection to client: " + message);
 			removeConnection(this);
 		}
 	}

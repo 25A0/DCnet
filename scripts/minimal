@@ -1,6 +1,12 @@
 # A minimal example for a network, featuring 3 clients and one server
 echo "executing minimal example script"
-station make server s1
+station make server -l s1
 station make client c1 c2 c3
 station keys add c1 c2 c1 c3 c2 c3
 station connect s1 c1 c2 c3
+
+debug track add network
+debug track add protocol
+station c1 state active
+station c2 state active
+station c3 state active

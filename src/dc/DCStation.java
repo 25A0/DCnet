@@ -45,7 +45,7 @@ public abstract class DCStation implements PackageListener{
 		try{
 			c.send(output);
 		} catch (IOException e) {
-			connectionLost();
+			connectionLost(e.getMessage());
 		}	
 	}
 
@@ -53,7 +53,7 @@ public abstract class DCStation implements PackageListener{
 		try {
 			c.send(output);
 		} catch(IOException e) {
-			connectionLost();
+			connectionLost(e.getMessage());
 		}
 	}
 	
@@ -100,10 +100,10 @@ public abstract class DCStation implements PackageListener{
 	}
 
 	@Override
-	public void connectionLost() {
+	public void connectionLost(String message) {
 		c = null;
 		connectionSemaphore.acquireUninterruptibly();
-		System.out.println("[DcStation " + alias + "] Connection lost.");
+		System.out.println("[DcStation " + alias + "] Connection lost: " + message);
 	}
 
 

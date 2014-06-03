@@ -9,6 +9,7 @@ import net.NetStatPackage;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.lang.IllegalStateException;
 
 public class DcServer extends DCStation {
 	private ConnectionBundle cb;
@@ -93,9 +94,14 @@ public class DcServer extends DCStation {
 				if(c != null) {
 					broadcast(nsp);
 				} else {
-					nsp.apply(net);
-					cb.handle(nsp);
-					cb.broadcast(nsp);
+					try {
+						nsp.apply(net);
+						cb.handle(nsp);
+						cb.broadcast(nsp);
+					} catch(IllegalStateException e) {
+						System.out.println("[DcServer "+alias+"] Unable to apply Status package.");
+						// Will not broadcast.
+					}
 				}
 			}
 		}
@@ -116,6 +122,9 @@ public class DcServer extends DCStation {
 					// In case this is not the highest server in the hierarchy, 
 					// this server is not responsible for initializing a conversation.
 					if(c != null) return;
+					// in case that there was an incoming message in the meantime, we don't
+					// need to pulse
+					if(!needsPulse) return;
 					// else we let the connectionBundle send out a pulse to all 
 					// connected stations.
 					cb.pulse();

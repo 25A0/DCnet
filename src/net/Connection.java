@@ -77,7 +77,7 @@ public abstract class Connection {
 					}
 				}
 			} catch (IOException e) {
-				listener.connectionLost();
+				listener.connectionLost(e.getMessage());
 			}
 		}
 		
@@ -118,10 +118,13 @@ public abstract class Connection {
 			boolean joining = (header & 1) == 0;
 			byte[] alias = new byte[DCConfig.ALIAS_LENGTH];
 			is.read(alias);
+			int start = 0;
+			while(alias[start] == (byte)0) start++;
+			
 			if(joining) {
-				return new NetStatPackage.Joining(new String(alias));
+				return new NetStatPackage.Joining(new String(alias, start, DCConfig.ALIAS_LENGTH - start));
 			} else {
-				return new NetStatPackage.Leaving(new String(alias));
+				return new NetStatPackage.Leaving(new String(alias, start, DCConfig.ALIAS_LENGTH - start));
 			}
 		}
 	}

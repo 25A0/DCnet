@@ -7,5 +7,5 @@ public interface PackageListener {
 
 	public void addInput(NetStatPackage message);
 
-	public void connectionLost();
+	public void connectionLost(String message);
 }
