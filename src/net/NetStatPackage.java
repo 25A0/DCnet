@@ -144,8 +144,14 @@ public abstract class NetStatPackage {
 			byte[] output = new byte[1 + DCConfig.ALIAS_LENGTH];
 			output[0] = (byte) 0;
 			byte[] alias = station.getBytes();
-			for(int i = 0; i < DCConfig.ALIAS_LENGTH; i++) {
-				output[1 + i] = alias[i];
+			int pos;
+			if(alias.length <= DCConfig.ALIAS_LENGTH) {
+				pos = output.length - alias.length;
+			} else {
+				pos = 1;
+			}
+			for(int i = 0; i < DCConfig.ALIAS_LENGTH && i < alias.length; i++) {
+				output[pos + i] = alias[i];
 			}
 			return output;
 		}

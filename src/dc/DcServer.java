@@ -148,7 +148,7 @@ public class DcServer extends DCStation {
 					Socket s = servSock.accept();
 					NetworkConnection ncon = new NetworkConnection(s);
 					cb.addConnection(ncon);
-					ncon.send(new NetStatPackage.Snapshot(net.getStations()));
+					// ncon.send(new NetStatPackage.Snapshot(net.getStations()));
 				}
 				servSock.close();
 			} catch (IOException e) {
