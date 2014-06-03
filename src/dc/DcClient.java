@@ -106,7 +106,7 @@ public class DcClient extends DCStation{
 		try {
 			inputPayload = Padding10.revert10padding(message.getMessage(scheduler.getScheduleSize()));
 		} catch(InputMismatchException e) {
-			System.out.println("Failed to revert 1- padding");
+			System.out.println("Failed to revert 1-0 padding: " + e.getMessage());
 		} 
 		int number = message.getNumber();
 		if(inputPayload != null) {
@@ -185,7 +185,7 @@ public class DcClient extends DCStation{
 				 *  the minimum. If too little connections are available then the station
 				 *  will only send empty messages
 				 */
-				// System.out.println("Are we allowed to send? " + (kh.approved(net.getStations())? " Yes":"No"));
+				// System.out.println(alias + ": Are we allowed to send? " + (kh.approved(net.getStations())? " Yes":"No"));
 				if(kh.approved(net.getStations()) && nextScheduledRound == nextRound) {
 					Debugger.println("messages", "[DcClient " + alias + "] Sending...");
 					message = mb.getMessage();

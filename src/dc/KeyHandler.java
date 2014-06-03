@@ -42,7 +42,7 @@ public class KeyHandler {
 		if(key.length != KEY_SIZE) {
 			System.err.println("[KeyHandler] Severe: The provided key has length " + key.length + " but it has to be of length " + KEY_SIZE + ".");
 		} else {
-			Debugger.println(2, "[KeyHandler] Adding key " + Arrays.toString(key) + " for station " + c + " to keychain.");
+			Debugger.println("keys", "[KeyHandler] Adding key " + Arrays.toString(key) + " for station " + c + " to keychain.");
 			synchronized(keychain) {
 				KeyNoncePair knp = new KeyNoncePair(key);
 				keychain.put(c, knp);
@@ -87,11 +87,12 @@ public class KeyHandler {
 	private byte[] nextKeyMix(int length, Collection<String> members) {
 		byte[] keyMix = new byte[length];
 		synchronized(keychain) {
-			for(KeyNoncePair knp: keychain.values()) {
+			for(String alias: members) {
+				KeyNoncePair knp = keychain.get(alias);
 				knp.encrypt(keyMix);
 			}	
 		}
-		Debugger.println(2, "[KeyHandler] Station "+ alias+ " has keyMix: " + Arrays.toString(keyMix));
+		Debugger.println("keys", "[KeyHandler] Station "+ alias+ " has keyMix: " + Arrays.toString(keyMix));
 		return keyMix;
 	}
 
