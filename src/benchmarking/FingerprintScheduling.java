@@ -1,25 +1,26 @@
-package dc.testing;
+package benchmarking;
 
 import java.util.Random;
 import java.util.Arrays;
 
-public class Scheduling {
+public class FingerprintScheduling {
 	private Random r;
 	private int c;
 	private int s;
 	private int b;
 
 	// Statistical data
-	public boolean succeeded;
-	public int requiredRounds;
-	public int emptySlots;
+	public long[] sentBytes;
+	private StatisticsTracker tracker;
 
 
 
-	public Scheduling(int numClients, int numSlots, int numBits) {
+	public FingerprintScheduling(int numClients, int numSlots, int numBits, StatisticsTracker tracker) {
 		this.c = numClients;
 		this.s = numSlots;
 		this.b = numBits;
+		this.tracker = tracker;
+		sentBytes = new long[c];
 		r = new Random();
 	}
 
@@ -28,6 +29,8 @@ public class Scheduling {
 			System.out.println("More than 8 bits per slot are not supported");
 			return;
 		}
+		boolean succeeded = false;
+		int requiredRounds = s;
 
 		// A convenient schedule array
 		byte[] schedule = new byte[s];
@@ -54,26 +57,39 @@ public class Scheduling {
 				fingerprints[cl] = getFingerprint(b);
 				if(choice != -1) {
 					nextSchedule[choice] ^= fingerprints[cl];
+					sentBytes[cl] += s * b;
 				}
 				choices[cl] = choice;
 			}
 			schedule = nextSchedule;
-			if(!hasCollision(choices)) {
+			int collisions = numCollisions(choices);
+			if(collisions == 0) {
 				if(!succeeded) {
 					// update # required rounds:
 					requiredRounds = round + 1;
 				}
 				succeeded = true;
 			} else {
-				requiredRounds = round + 1;
+				requiredRounds = s;
 				succeeded = false;
 			}
 		}
 
-		emptySlots = 0;
+		int emptySlots = 0;
 		for(int i = 0; i < s; i++) {
 			if(schedule[i] == 0) {
 				emptySlots++;
+			}
+		}
+		tracker.reportFreeSlots(emptySlots);
+		tracker.reportCollisions(numCollisions(choices));
+		tracker.reportRequiredRounds(requiredRounds);
+		if (succeeded) {
+			for(int i = 0; i < c; i++) {
+				if(choices[i] != -1) {
+					tracker.reportReservation(sentBytes[i]);
+					sentBytes[i] = 0;
+				}
 			}
 		}
 	}
@@ -122,13 +138,19 @@ public class Scheduling {
 		return f;
 	}
 
-	private boolean hasCollision(int[] choice) {
-		for(int i = 0; i < choice.length; i++) {
-			if(choice[i] == -1) continue;
-			for(int j = i + 1; j < choice.length; j++) {
-				if(choice[i] == choice[j]) return true;
+	private int numCollisions(int[] choices) {
+		int collisions = 0;
+		int[] slots = new int[s];
+		Arrays.fill(slots, -1);
+		for(int i = 0; i < c; i++) {
+			int choice = choices[i];
+			if(choice == -1) continue;
+			if(slots[choice] != -1) {
+				collisions++;
+			} else {
+				slots[choice] = i;
 			}
 		}
-		return false;
+		return collisions;
 	}
 }

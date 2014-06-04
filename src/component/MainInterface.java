@@ -3,7 +3,7 @@ package component;
 import dc.DCConfig;
 import cli.CLC;
 import dc.cli.MultiStationInterface;
-import dc.cli.SchedulingController;
+import benchmarking.SchedulingController;
 
 public class MainInterface extends CLC {
 	private MultiStationInterface msi;
