@@ -42,7 +42,7 @@ public class SchedulingController extends CLC {
 				double[] coverage = new double[cc];
 				System.out.println("Executing benchmark for " +  numSlots + " slots and " + numBits + " bits per slot");
 				for(int i = 0; i < cc; i++) {
-					System.out.print("["+(i+1)+"/"+cc+"]\t" + clients[i] + " client(s)\t" + numSlots + " slots\t");
+					System.out.print("["+(i+1)+"/"+cc+"]\t" + clients[i] + " client(s)\t" + clients[i] + " slots\t");
 					StatisticsTracker tracker = benchmark(clients[i], avgs);
 					bytesPerReservation[i] = tracker.getAverageBytesPerReservation();
 					collisions[i] = tracker.getAverageCollisions(avgs);
@@ -63,7 +63,7 @@ public class SchedulingController extends CLC {
 
 			private StatisticsTracker benchmark(int clients, int avgs) {
 				StatisticsTracker tracker = new StatisticsTracker();
-				FingerprintScheduling s = new FingerprintScheduling(clients, numSlots, numBits, tracker);
+				FingerprintScheduling s = new FingerprintScheduling(clients, clients, numBits, tracker);
 				int steps = (avgs/100) + 1;
 				for(int i = 1; i < avgs; i++) {
 					s.schedule();
@@ -87,7 +87,7 @@ public class SchedulingController extends CLC {
 				double[] coverage = new double[cc];
 				// System.out.println("Executing benchmark for " + numSlots + " slots");
 				for(int i = 0; i < cc; i++) {
-					System.out.print("["+(i+1)+"/"+cc+"]\t" + clients[i] + " client(s)\t" + clients[i]*32 + " slots\t");
+					System.out.print("["+(i+1)+"/"+cc+"]\t" + clients[i] + " client(s)\t" + clients[i]*numSlots + " slots\t");
 					StatisticsTracker tracker = benchmark(clients[i], avgs);
 					bytesPerReservation[i] = tracker.getAverageBytesPerReservation();
 					coverage[i] = tracker.getCoverage();
@@ -102,7 +102,7 @@ public class SchedulingController extends CLC {
 
 			private StatisticsTracker benchmark(int clients, int avgs) {
 				StatisticsTracker tracker = new StatisticsTracker();
-				PfitzmannScheduling s = new PfitzmannScheduling(clients, clients * 32, tracker);
+				PfitzmannScheduling s = new PfitzmannScheduling(clients, clients * numSlots, tracker);
 				int steps = (avgs/100) + 1;
 				for(int i = 1; i < avgs; i++) {
 					s.schedule();
