@@ -7,6 +7,8 @@ public class StatisticsTracker {
 	private int overallRequiredRounds;
 	private int overallCollisions;
 	private int overallFreeSlots;
+	private int numScheduled;
+	private int overallClients;
 
 	public StatisticsTracker() {
 
@@ -33,6 +35,11 @@ public class StatisticsTracker {
 		overallFreeSlots+= freeSlots;
 	}
 
+	public void reportCoverage(int numScheduled, int overallClients) {
+		this.numScheduled = numScheduled;
+		this.overallClients = overallClients;
+	}
+
 	public double getAverageBytesPerReservation() {
 		return (double) overallBytes / (double) overallReservations;
 	}
@@ -48,4 +55,9 @@ public class StatisticsTracker {
 	public double getAverageRequiredRounds(int numSamples) {
 		return (double) overallRequiredRounds / (double) numSamples;
 	}
+
+	public double getCoverage() {
+		return (double) numScheduled / (double) overallClients;
+	}
+
 }

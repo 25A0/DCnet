@@ -11,6 +11,8 @@ public class FingerprintScheduling {
 
 	// Statistical data
 	public long[] sentBytes;
+	public boolean[] hasSent;
+
 	private StatisticsTracker tracker;
 
 
@@ -21,6 +23,10 @@ public class FingerprintScheduling {
 		this.b = numBits;
 		this.tracker = tracker;
 		sentBytes = new long[c];
+
+		hasSent = new boolean[c];
+		Arrays.fill(hasSent, false);
+
 		r = new Random();
 	}
 
@@ -57,8 +63,8 @@ public class FingerprintScheduling {
 				fingerprints[cl] = getFingerprint(b);
 				if(choice != -1) {
 					nextSchedule[choice] ^= fingerprints[cl];
-					sentBytes[cl] += s * b;
 				}
+				sentBytes[cl] += s * b;
 				choices[cl] = choice;
 			}
 			schedule = nextSchedule;
@@ -69,6 +75,7 @@ public class FingerprintScheduling {
 					requiredRounds = round + 1;
 				}
 				succeeded = true;
+				break;
 			} else {
 				requiredRounds = s;
 				succeeded = false;
@@ -89,9 +96,17 @@ public class FingerprintScheduling {
 				if(choices[i] != -1) {
 					tracker.reportReservation(sentBytes[i]);
 					sentBytes[i] = 0;
+					hasSent[i] = true;
 				}
 			}
 		}
+		int coverage = 0;
+		for(int i = 0; i < c; i++) {
+			if(hasSent[i]) {
+				coverage++;
+			}
+		}
+		tracker.reportCoverage(coverage, c);
 	}
 
 	private int choose(byte[] schedule, int lastChoice, byte fingerprint, boolean lastRound) {
