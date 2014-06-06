@@ -33,7 +33,7 @@ public class SchedulingController extends CLC {
 				numSlots = args.fetchInteger();
 				numBits = args.fetchInteger();
 				
-				int[] clients = new int[] {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
+				int[] clients = new int[] {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000};
 				int cc = clients.length;
 				double[] bytesPerReservation = new double[cc];
 				double[] collisions = new double[cc];
@@ -81,7 +81,7 @@ public class SchedulingController extends CLC {
 				int avgs = args.fetchInteger();
 				numSlots = args.fetchInteger();
 				
-				int[] clients = new int[] {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
+				int[] clients = new int[] {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000};
 				int cc = clients.length;
 				double[] bytesPerReservation = new double[cc];
 				double[] coverage = new double[cc];
