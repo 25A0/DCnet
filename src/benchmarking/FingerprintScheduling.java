@@ -17,7 +17,7 @@ public class FingerprintScheduling {
 
 	// The chance that a station moves to a different slot in
 	// case that the chosen slot appears to be occupied
-	private double chance;
+	private double chance = 0.5;
 
 	public FingerprintScheduling(int numClients, int numSlots, int numBits, StatisticsTracker tracker) {
 		this.c = numClients;
@@ -28,11 +28,6 @@ public class FingerprintScheduling {
 
 		hasSent = new boolean[c];
 		Arrays.fill(hasSent, false);
-
-		chance = c / s; //intentionally not casted to doubles
-		if(c % s != 0) chance++;
-		chance /= chance + 1d;
-		System.out.println("Chance is " + chance);
 
 		r = new Random();
 	}
