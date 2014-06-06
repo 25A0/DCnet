@@ -15,7 +15,9 @@ public class FingerprintScheduling {
 
 	private StatisticsTracker tracker;
 
-
+	// The chance that a station moves to a different slot in
+	// case that the chosen slot appears to be occupied
+	private double chance;
 
 	public FingerprintScheduling(int numClients, int numSlots, int numBits, StatisticsTracker tracker) {
 		this.c = numClients;
@@ -26,6 +28,11 @@ public class FingerprintScheduling {
 
 		hasSent = new boolean[c];
 		Arrays.fill(hasSent, false);
+
+		chance = c / s; //intentionally not casted to doubles
+		if(c % s != 0) chance++;
+		chance /= chance + 1d;
+		System.out.println("Chance is " + chance);
 
 		r = new Random();
 	}
@@ -133,7 +140,7 @@ public class FingerprintScheduling {
 					numFree++;
 				}
 			}
-			if(r.nextDouble() < 0.5d) {
+			if(withdraw()) {
 				// 50% chance that we stay, in the hope that others move away from
 				// our slot, otherwise we withdraw.
 				if(numFree == 0) {
@@ -146,6 +153,10 @@ public class FingerprintScheduling {
 				return lastChoice;
 			}
 		}
+	}
+
+	private boolean withdraw() {
+		return r.nextDouble() < chance;
 	}
 
 	private byte getFingerprint(int b) {
