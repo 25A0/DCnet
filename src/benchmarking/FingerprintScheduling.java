@@ -93,7 +93,7 @@ public class FingerprintScheduling {
 		if (succeeded) {
 			for(int i = 0; i < c; i++) {
 				if(choices[i] != -1) {
-					long bytes = 1 + (sentBits[i] >> 3);
+					long bytes = (sentBits[i] >> 3) + ((sentBits[i]%8 == 0)?0:1);
 					tracker.reportReservation(bytes);
 					sentBits[i] = 0;
 					hasSent[i] = true;

@@ -29,12 +29,15 @@ public class PfitzmannScheduling {
 		this.tracker = tracker;
 		sentBytes = new long[c];
 		// Calculate size of each message
-		msgSize = 2;
+		// according to Pfitzmann's description
+		msgSize = 1;
 		int alphabet = c * s;
 		while(alphabet > 0) {
 			alphabet >>=1;
 			msgSize++;
 		}
+		// Round up to full bytes
+		msgSize += (8 - (msgSize%8));
 		int countSize = c;
 		while(countSize > 0) {
 			countSize >>=1;
@@ -42,8 +45,9 @@ public class PfitzmannScheduling {
 		}
 		// Round up to full bytes
 		msgSize += (8-(msgSize%8));
+		// convert from bits to bytes
 		msgSize >>= 3;
-
+		// System.out.println("Message size for " + c + " clients and " + s + " slots:\n" + msgSize);
 		hasSent = new boolean[c];
 		Arrays.fill(hasSent, false);
 
