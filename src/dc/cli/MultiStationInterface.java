@@ -215,6 +215,7 @@ public class MultiStationInterface extends CLC {
 									client.send((byte) is.read());									
 									byteCount++;
 								}
+								client.stop();
 								is.close();
 								if(block) client.block();
 								System.out.println("[MultiStationInterface] " + byteCount + " byte(s) have been read from file " + path);

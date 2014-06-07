@@ -72,6 +72,10 @@ public class DcClient extends DCStation{
 	public void send(String s) throws IOException {
 		mb.write(s.getBytes());
 	}
+
+	public void stop() {
+		mb.stop();
+	}
 	
 	public void send(byte b) throws IOException {
 		mb.write(b);
