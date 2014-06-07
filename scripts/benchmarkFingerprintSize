@@ -1,0 +1,6 @@
+echo "Benchmarking different size for fingerprints"
+scheduling fingerprint 1024 32 4 1.0
+scheduling fingerprint 1024 32 5 1.0 
+scheduling fingerprint 1024 32 6 1.0 
+scheduling fingerprint 1024 32 7 1.0 
+scheduling fingerprint 1024 32 8 1.0 

@@ -3,44 +3,44 @@ package benchmarking;
 import cli.CLC;
 import cli.ArgSet;
 
+
+import java.util.ArrayList;
+import java.util.InputMismatchException;
 import java.util.Arrays;
 
 public class SchedulingController extends CLC {
 
 	public SchedulingController() {
-		Action scheduleAction = new Action() {
-			@Override
-			public void execute(ArgSet args) {
-				int numClients = args.fetchInteger();
-				int numSlots = args.fetchInteger();
-				int numBits = args.fetchInteger();
-				StatisticsTracker tracker = new StatisticsTracker();
-				FingerprintScheduling s = new FingerprintScheduling(numClients, numSlots, numBits, tracker);
-				s.schedule();
-				System.out.println("Collisions: " + tracker.getAverageCollisions(1));
-				System.out.println("Required rounds: " + tracker.getAverageRequiredRounds(1));
-				System.out.println("Unused slots: " + tracker.getAverageFreeSlots(1));
-				System.out.println("Sent bytes: " + tracker.getAverageBytesPerReservation());
-			}
-		};
 
 		Action fingerprintAction = new Action() {
 			private int numSlots, numBits;
+			private double activity;
 
 			@Override
 			public void execute(ArgSet args) {
 				int avgs = args.fetchInteger();
 				numSlots = args.fetchInteger();
 				numBits = args.fetchInteger();
+				activity = Double.valueOf(args.pop());
 				
-				int[] clients = new int[] {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000};
+				Integer[] clients;
+				try {
+					ArgSet cas = args.fetchList();
+					ArrayList<Integer> cl = new ArrayList<Integer>();
+					while(cas.hasIntArg()) {
+						cl.add(cas.fetchInteger());
+					}
+					clients = cl.toArray(new Integer[cl.size()]);
+				} catch(InputMismatchException e) {
+					clients = new Integer[] {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
+				}
 				int cc = clients.length;
 				double[] bytesPerReservation = new double[cc];
 				double[] collisions = new double[cc];
 				double[] requiredRounds = new double[cc];
 				double[] emptySlots = new double[cc];
 				double[] coverage = new double[cc];
-				System.out.println("Executing benchmark for " +  numSlots + " slots and " + numBits + " bits per slot");
+				System.out.println("Executing FINGERPRINT SCHEDULING benchmark for " +  numSlots + " slots and " + numBits + " bits per slot, " + activity*100 +"% client activity");
 				for(int i = 0; i < cc; i++) {
 					System.out.print("["+(i+1)+"/"+cc+"]\t" + clients[i] + " client(s)\t" + numSlots + " slots\t");
 					StatisticsTracker tracker = benchmark(clients[i], avgs);
@@ -63,7 +63,7 @@ public class SchedulingController extends CLC {
 
 			private StatisticsTracker benchmark(int clients, int avgs) {
 				StatisticsTracker tracker = new StatisticsTracker();
-				FingerprintScheduling s = new FingerprintScheduling(clients, numSlots, numBits, tracker);
+				FingerprintScheduling s = new FingerprintScheduling(clients, numSlots, numBits, activity, tracker);
 				int steps = (avgs/100) + 1;
 				for(int i = 1; i < avgs; i++) {
 					s.schedule();
@@ -74,18 +74,30 @@ public class SchedulingController extends CLC {
 		};
 
 		Action pfitzmannAction = new Action() {
-			private int numSlots, numBits;
+			private int numSlots;
+			private double activity;
 
 			@Override
 			public void execute(ArgSet args) {
 				int avgs = args.fetchInteger();
 				numSlots = args.fetchInteger();
-				
-				int[] clients = new int[] {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000};
+				activity = Double.valueOf(args.pop());
+
+				Integer[] clients;
+				try {
+					ArgSet cas = args.fetchList();
+					ArrayList<Integer> cl = new ArrayList<Integer>();
+					while(cas.hasIntArg()) {
+						cl.add(cas.fetchInteger());
+					}
+					clients = cl.toArray(new Integer[cl.size()]);
+				} catch(InputMismatchException e) {
+					clients = new Integer[] {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
+				}
 				int cc = clients.length;
 				double[] bytesPerReservation = new double[cc];
 				double[] coverage = new double[cc];
-				// System.out.println("Executing benchmark for " + numSlots + " slots");
+				System.out.println("Executing PFITZMANN'S ALGORITHM benchmark for " + numSlots + " slots per client, " + activity*100 +"% client activity");
 				for(int i = 0; i < cc; i++) {
 					System.out.print("["+(i+1)+"/"+cc+"]\t" + clients[i] + " client(s)\t" + clients[i]*numSlots + " slots\t");
 					StatisticsTracker tracker = benchmark(clients[i], avgs);
@@ -102,7 +114,7 @@ public class SchedulingController extends CLC {
 
 			private StatisticsTracker benchmark(int clients, int avgs) {
 				StatisticsTracker tracker = new StatisticsTracker();
-				PfitzmannScheduling s = new PfitzmannScheduling(clients, clients * numSlots, tracker);
+				PfitzmannScheduling s = new PfitzmannScheduling(clients, clients * numSlots, activity, tracker);
 				int steps = (avgs/100) + 1;
 				for(int i = 1; i < avgs; i++) {
 					s.schedule();
@@ -112,7 +124,6 @@ public class SchedulingController extends CLC {
 			}
 		};
 
-		mapCommand("schedule", scheduleAction);
 		mapCommand("fingerprint", fingerprintAction);
 		mapCommand("pfitzmann", pfitzmannAction);
 	}

@@ -9,6 +9,8 @@ public class PfitzmannScheduling {
 	private int c;
 	// The number of slots
 	private int s;
+	// The percentage of active (i.e. sending) clients
+	private double a;
 	// The size of one message
 	private int msgSize;
 	// The slot that each client chose
@@ -23,9 +25,10 @@ public class PfitzmannScheduling {
 
 
 
-	public PfitzmannScheduling(int numClients, int numSlots, StatisticsTracker tracker) {
+	public PfitzmannScheduling(int numClients, int numSlots, double activity, StatisticsTracker tracker) {
 		this.c = numClients;
 		this.s = numSlots;
+		this.a = activity;
 		this.tracker = tracker;
 		sentBytes = new long[c];
 		// Calculate size of each message
@@ -59,14 +62,19 @@ public class PfitzmannScheduling {
 		schedule = new long[s];
 		
 		for(int i = 0; i < c; i++) {
-			// Add 1 to avoid that stations schedule slot 0
-			choices[i] = (long) r.nextInt(s) + 1;
+			if(r.nextDouble() < a) {
+				// Add 1 to avoid that stations schedule slot 0
+				choices[i] = (long) r.nextInt(s) + 1;
+			} else {
+				choices[i] = -1;
+			}
 		}
 		
 		long[] outcome = send(s);
 		deduce(outcome[0], outcome[1]);
 
 		for(int i = 0; i < c; i++) {
+			if(choices[i] == -1) continue;
 			if(schedule[(int) choices[i]-1]==1) {
 				tracker.reportReservation(sentBytes[i]);
 				sentBytes[i] = 0;
@@ -109,6 +117,7 @@ public class PfitzmannScheduling {
 		long count = 0;
 		for(int i = 0; i < c; i++) {
 			sentBytes[i]+=msgSize;
+			if(choices[i] == -1) continue;
 			if(schedule[(int) choices[i] - 1 ] == 0 && choices[i] <= avgThreshold) {
 				sum += choices[i];
 				count++;

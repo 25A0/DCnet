@@ -1,0 +1,6 @@
+echo "Benchmarking different ratios between number of slots and clients"
+scheduling pfitzmann 16 2 1.0
+scheduling pfitzmann 16 4 1.0
+scheduling pfitzmann 16 8 1.0
+scheduling pfitzmann 16 16 1.0
+scheduling pfitzmann 16 32 1.0

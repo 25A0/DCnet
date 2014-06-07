@@ -8,6 +8,7 @@ public class FingerprintScheduling {
 	private int c;
 	private int s;
 	private int b;
+	private double a;
 
 	// Statistical data
 	public long[] sentBits;
@@ -19,10 +20,11 @@ public class FingerprintScheduling {
 	// case that the chosen slot appears to be occupied
 	private double chance = 0.5;
 
-	public FingerprintScheduling(int numClients, int numSlots, int numBits, StatisticsTracker tracker) {
+	public FingerprintScheduling(int numClients, int numSlots, int numBits, double activity, StatisticsTracker tracker) {
 		this.c = numClients;
 		this.s = numSlots;
 		this.b = numBits;
+		this.a = activity;
 		this.tracker = tracker;
 		sentBits = new long[c];
 
@@ -50,8 +52,12 @@ public class FingerprintScheduling {
 		// and initial fingerprints are chosen
 		int[] choices = new int[c];
 		for(int i = 0; i < c; i++) {
-			choices[i] = r.nextInt(s);
-			// choices[i] = -1;
+			if(r.nextDouble() < a) {
+				choices[i] = r.nextInt(s);
+			} else {
+				choices[i] = -2;
+				continue;
+			}
 			fingerprints[i] = getFingerprint(b);
 			schedule[choices[i]] ^= fingerprints[i];
 		}
@@ -61,6 +67,7 @@ public class FingerprintScheduling {
 			// System.out.println("Choices are: " + Arrays.toString(choices));
 			byte[] nextSchedule = new byte[s];
 			for (int cl = 0; cl < c; cl++) {
+				if(choices[cl] == -2) continue;
 				int choice = choose(schedule, choices[cl], fingerprints[cl], round == s - 1);
 				fingerprints[cl] = getFingerprint(b);
 				if(choice != -1) {
@@ -94,7 +101,7 @@ public class FingerprintScheduling {
 		tracker.reportRequiredRounds(requiredRounds);
 		if (succeeded) {
 			for(int i = 0; i < c; i++) {
-				if(choices[i] != -1) {
+				if(choices[i] >= 0) {
 					long bytes = (sentBits[i] >> 3) + ((sentBits[i]%8 == 0)?0:1);
 					tracker.reportReservation(bytes);
 					sentBits[i] = 0;
@@ -165,7 +172,7 @@ public class FingerprintScheduling {
 		Arrays.fill(slots, -1);
 		for(int i = 0; i < c; i++) {
 			int choice = choices[i];
-			if(choice == -1) continue;
+			if(choice < 0) continue;
 			if(slots[choice] != -1) {
 				collisions++;
 			} else {

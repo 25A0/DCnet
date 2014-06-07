@@ -1,1 +1,2 @@
-scheduling fingerprint 4096 32 8
+run scripts/benchmarkFingerprintSize
+run scripts/benchmarkFingerprintActivity
