@@ -15,10 +15,10 @@ public class SchedulingController extends CLC {
 		Action fingerprintAction = new Action() {
 			private int numSlots, numBits;
 			private double activity;
+			private int avgs;
 
 			@Override
 			public void execute(ArgSet args) {
-				int avgs = args.fetchInteger();
 				numSlots = args.fetchInteger();
 				numBits = args.fetchInteger();
 				activity = Double.valueOf(args.pop());
@@ -43,7 +43,7 @@ public class SchedulingController extends CLC {
 				System.out.println("Executing FINGERPRINT SCHEDULING benchmark for " +  numSlots + " slots and " + numBits + " bits per slot, " + activity*100 +"% client activity");
 				for(int i = 0; i < cc; i++) {
 					System.out.print("["+(i+1)+"/"+cc+"]\t" + clients[i] + " client(s)\t" + numSlots + " slots\t");
-					StatisticsTracker tracker = benchmark(clients[i], avgs);
+					StatisticsTracker tracker = benchmark(clients[i]);
 					bytesPerReservation[i] = tracker.getAverageBytesPerReservation();
 					collisions[i] = tracker.getAverageCollisions(avgs);
 					requiredRounds[i] = tracker.getAverageRequiredRounds(avgs);
@@ -61,14 +61,16 @@ public class SchedulingController extends CLC {
 				System.out.println("Coverage:\n" + Arrays.toString(coverage));
 			}
 
-			private StatisticsTracker benchmark(int clients, int avgs) {
+			private StatisticsTracker benchmark(int clients) {
 				StatisticsTracker tracker = new StatisticsTracker();
 				FingerprintScheduling s = new FingerprintScheduling(clients, numSlots, numBits, activity, tracker);
-				int steps = (avgs/100) + 1;
-				for(int i = 1; i < avgs; i++) {
+				int steps = (clients/100) + 1;
+				avgs = 0;
+				do {
 					s.schedule();
-					if(i%steps == 0) System.out.print(".");
-				}
+					if(avgs%steps == 0) System.out.print(".");
+					avgs++;
+				} while(!s.finished());
 				return tracker;
 			}
 		};
@@ -76,10 +78,10 @@ public class SchedulingController extends CLC {
 		Action pfitzmannAction = new Action() {
 			private int numSlots;
 			private double activity;
+			private int avgs;
 
 			@Override
 			public void execute(ArgSet args) {
-				int avgs = args.fetchInteger();
 				numSlots = args.fetchInteger();
 				activity = Double.valueOf(args.pop());
 
@@ -100,7 +102,7 @@ public class SchedulingController extends CLC {
 				System.out.println("Executing PFITZMANN'S ALGORITHM benchmark for " + numSlots + " slots per client, " + activity*100 +"% client activity");
 				for(int i = 0; i < cc; i++) {
 					System.out.print("["+(i+1)+"/"+cc+"]\t" + clients[i] + " client(s)\t" + clients[i]*numSlots + " slots\t");
-					StatisticsTracker tracker = benchmark(clients[i], avgs);
+					StatisticsTracker tracker = benchmark(clients[i]);
 					bytesPerReservation[i] = tracker.getAverageBytesPerReservation();
 					coverage[i] = tracker.getCoverage();
 					System.out.println("\t [DONE]");
@@ -112,14 +114,15 @@ public class SchedulingController extends CLC {
 				System.out.println("Coverage:\n" + Arrays.toString(coverage));
 			}
 
-			private StatisticsTracker benchmark(int clients, int avgs) {
+			private StatisticsTracker benchmark(int clients) {
 				StatisticsTracker tracker = new StatisticsTracker();
 				PfitzmannScheduling s = new PfitzmannScheduling(clients, clients * numSlots, activity, tracker);
-				int steps = (avgs/100) + 1;
-				for(int i = 1; i < avgs; i++) {
+				int steps = (clients/100) + 1;
+				do {
 					s.schedule();
-					if(i%steps == 0) System.out.print(".");
-				}
+					if(avgs%steps == 0) System.out.print(".");
+					avgs++;
+				} while(!s.finished());
 				return tracker;
 			}
 		};

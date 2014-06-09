@@ -57,6 +57,13 @@ public class PfitzmannScheduling {
 		r = new Random();
 	}
 
+	public boolean finished() {
+		for(boolean b: hasSent) {
+			if(!b) return false;
+		}
+		return true;
+	}
+
 	public void schedule() {
 		choices = new long[c];
 		schedule = new long[s];
@@ -75,7 +82,7 @@ public class PfitzmannScheduling {
 
 		for(int i = 0; i < c; i++) {
 			if(choices[i] == -1) continue;
-			if(schedule[(int) choices[i]-1]==1) {
+			if(schedule[(int) choices[i]-1]==1 && !hasSent[i]) {
 				tracker.reportReservation(sentBytes[i]);
 				sentBytes[i] = 0;
 				hasSent[i] = true;

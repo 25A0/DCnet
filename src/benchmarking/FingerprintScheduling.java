@@ -101,7 +101,7 @@ public class FingerprintScheduling {
 		tracker.reportRequiredRounds(requiredRounds);
 		if (succeeded) {
 			for(int i = 0; i < c; i++) {
-				if(choices[i] >= 0) {
+				if(choices[i] >= 0 && !hasSent[i]) {
 					long bytes = (sentBits[i] >> 3) + ((sentBits[i]%8 == 0)?0:1);
 					tracker.reportReservation(bytes);
 					sentBits[i] = 0;
@@ -116,6 +116,13 @@ public class FingerprintScheduling {
 			}
 		}
 		tracker.reportCoverage(coverage, c);
+	}
+
+	public boolean finished() {
+		for(boolean b: hasSent) {
+			if(!b) return false;
+		}
+		return true;
 	}
 
 	private int choose(byte[] schedule, int lastChoice, byte fingerprint, boolean lastRound) {
