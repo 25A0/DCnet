@@ -41,11 +41,17 @@ public class FingerprintScheduler implements Scheduler {
 
 	
 	@Override
-	public boolean addPackage(DCPackage p) {
+	public boolean addPackage(DCPackage p, boolean waiting) {
 		if(p.getNumberRange() != numSlots) {
-			throw new InputMismatchException("[FingerprintScheduler] umm... the numberRange is " + p.getNumberRange() + " but the number of slots is " + numSlots+
-				". This is not gonna work...");
+			throw new InputMismatchException("[FingerprintScheduler] The numberRange is " + p.getNumberRange() + " but the number of slots is " + numSlots+".");
 		}
+		
+		// If we do not want to reserve a slot, then the desired 
+		// slot is set to the sentinel value -1. This will cancel 
+		// scheduling for the ongoing cycle, since clients can not
+		// re-enter scheduling once they've left.
+		if(!waiting) desiredSlot = -1;
+
 		byte[] schedule = p.getSchedule(getScheduleSize());
 		boolean hasCollision = hasCollision(schedule);
 		refreshFingerprint();

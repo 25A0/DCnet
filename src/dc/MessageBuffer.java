@@ -121,6 +121,15 @@ public class MessageBuffer extends OutputStream {
 		}
 
 		/**
+		 * Checks whether the underlying buffer still contains messages to be sent.
+		 * Should be combined with {@code hasPendingMessage} to find out if there
+		 * are still messages to be sent in general.
+		 */
+		public boolean isEmpty() {
+			return messageBuffer.isEmpty() && writePointer == 0;
+		}
+
+		/**
 		 * Confirms that the currently pending message has been succesfully delivered.
 		 */
 		public void confirmMessage() {

@@ -13,7 +13,11 @@ public class PrimitiveScheduler implements Scheduler {
 	}
 
 	@Override
-	public boolean addPackage(DCPackage p) {
+	public boolean addPackage(DCPackage p, boolean waiting) {
+		if(!waiting) {
+			nextScheduledRound = -1;
+			return true;
+		}
 		roundRange = p.getNumberRange();
 		currentRound = p.getNumber();
 		if(currentRound == nextScheduledRound || nextScheduledRound == -1) {

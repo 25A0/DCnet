@@ -127,7 +127,8 @@ public class DcClient extends DCStation{
 			inputBuffer.add(inputPayload);
 			inputAvailable.release();
 		}
-		if(isActive && scheduler.addPackage(message)) {
+		boolean waiting = mb.hasPendingMessage() || !mb.isEmpty();
+		if(isActive && scheduler.addPackage(message, waiting)) {
 			nextScheduledRound = scheduler.getNextRound();
 			Debugger.println("scheduling", "[DcClient "+alias+"] successfully scheduled slot: " + nextScheduledRound);	
 		}
