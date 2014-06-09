@@ -153,6 +153,7 @@ public class DcServer extends DCStation {
 		public void run() {
 			try {
 				servSock = new ServerSocket(port);
+				servSock.setPerformancePreferences(0, 2, 1);
 				while(!isClosed) {
 					Socket s = servSock.accept();
 					NetworkConnection ncon = new NetworkConnection(s);
