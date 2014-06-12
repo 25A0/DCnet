@@ -1,4 +1,5 @@
 echo "Benchmarking performance of clients with different activity"
+scheduling pfitzmann 32 0.01 [10000]
 scheduling pfitzmann 32 0.1 [10000]
 scheduling pfitzmann 32 0.2 [10000]
 scheduling pfitzmann 32 0.3 [10000]
