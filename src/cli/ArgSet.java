@@ -16,7 +16,7 @@ public class ArgSet {
 	 * Initializes the ArgSet with an empty String.
 	 */
 	public ArgSet() {
-		new ArgSet("");
+		this("");
 	}
 
 	/**
@@ -85,7 +85,6 @@ public class ArgSet {
 	 */
 	private int getFirstArgEndIndex() {
 		int l = arg.length();
-		boolean inString = false;
 		// An empty string can't have any arguments
 		if(l == 0) {
 			return -1;
@@ -94,20 +93,31 @@ public class ArgSet {
 		for(i = 0; i < l; i++) {
 			char c = arg.charAt(i);
 			if(c == '\"') {
-				inString = !inString;
-			} else  if(c <= 32 && !inString) {
+				i = getSectionEndIndex(i, '\"');
+			} else if (c == '[') {
+				i = getSectionEndIndex(i, ']');
+			} else  if(c <= 32) {
 				return i;
 			}
-		}
-		if(inString) {
-			// String has not been terminated properly.
-			return -1;
+			if(i == -1) return i;
 		}
 		// In this case we reached the end of the String without encountering any
 		// characters that were no white spaces
 		return i;
 	}
-	
+
+	private int getSectionEndIndex(int start, char terminator) {
+		int i = start;
+		do {
+			i++;
+			if(i == arg.length()) {
+				// The string is never terminated
+				return -1;
+			}
+		} while(arg.charAt(i) != terminator);
+		return i;
+	}
+
 	/**
 	 * Try to read the first argument as a String. In this case a string is enclosed by " characters.
 	 * @return      A string representation of the first argument
@@ -119,6 +129,15 @@ public class ArgSet {
 		else {
 			String s = pop();
 			return s.substring(1, s.length() - 1);
+		}
+	}
+
+	public ArgSet fetchList() throws InputMismatchException {
+		if(!hasListArg()) {
+			throw new InputMismatchException("There are no list arguments to fetch from.");
+		} else {
+			String s = pop();
+			return new ArgSet(s.substring(1, s.length() - 1));
 		}
 	}
 	
@@ -166,10 +185,17 @@ public class ArgSet {
 	 */
 	public boolean hasStringArg() {
 		String s = peek();
-		if(s.charAt(0) == '\"' && s.charAt(s.length() - 1) == '\"') {
-			return true;
-		}
-		return false;
+		return (!s.isEmpty() && s.charAt(0) == '\"' && s.charAt(s.length() - 1) == '\"');
+	}
+
+	/**
+	 * Checks whether there is a list argument available.
+	 * A list argument starts with [ and ends with ].
+	 * @return True if there's a list argument ahead of the reading head.
+	 */
+	public boolean hasListArg() {
+		String s = peek();
+		return (!s.isEmpty() && s.charAt(0) == '[' && s.charAt(s.length() - 1) == ']');
 	}
 
 	/**
@@ -208,6 +234,10 @@ public class ArgSet {
 		} else {
 			return s.length() == 2 && s.charAt(0) == '-' && Character.isLetter(s.charAt(1));
 		} 
+	}
+
+	public boolean isComment() {
+		return arg.length() > 0 && arg.charAt(0) == '#';
 	}
 
 }

@@ -1,0 +1,2 @@
+run scripts/benchmarkPfitzmannRatio
+run scripts/benchmarkPfitzmannActivity

@@ -1,0 +1,24 @@
+# This script demonstrates how a network of multiple layers can be created
+echo "executing multi-server script"
+echo "setting up servers..."
+station make server -l s1 s2 s3 s4
+station connect s4 s3 s2 s1
+station keys add s1 s2 s1 s3 s2 s3
+station keys add s1 s4 s2 s4 s3 s4
+echo "setting up clients..."
+station make client c1 c2 c3
+station c1 connect -l s1
+station c2 connect -l s1
+station c3 connect -l s1
+station make client c4 c5 c6
+station c4 connect -l s2
+station c5 connect -l s2
+station c6 connect -l s2
+station make client c7 c8 c9
+station c7 connect -l s3
+station c8 connect -l s3
+station c9 connect -l s3
+station keys add c1 c8 c1 c3 c2 c3
+station keys add c4 c5 c4 c6 c5 c6
+station keys add c7 c2 c7 c9 c8 c9
+echo "done"

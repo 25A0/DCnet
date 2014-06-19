@@ -1,0 +1,2 @@
+run scripts/benchmarkFingerprintSize
+run scripts/benchmarkFingerprintActivity

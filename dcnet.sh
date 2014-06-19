@@ -1,3 +1,3 @@
 #! /bin/sh
 
-java -cp bin/ component.Main
+java -cp bin/ component.Main $@

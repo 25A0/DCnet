@@ -1,0 +1,9 @@
+# A script that sets up clients that connect to a pre-defined server
+echo "setting up clients"
+station make client c1 c2 c3
+echo "adding keys"
+station keys add c1 c2 c1 c3 c2 c3
+echo "connectiong to 192.168.2.74:4223"
+station c1 connect 192.168.2.74 4223
+station c2 connect 192.168.2.74 4223
+station c3 connect 192.168.2.74 4223
