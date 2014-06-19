@@ -9,6 +9,7 @@ public class FingerprintScheduling {
 	private int s;
 	private int b;
 	private double a;
+	private boolean stopOnConvergence;
 
 	// Statistical data
 	public long[] sentBits;
@@ -20,12 +21,13 @@ public class FingerprintScheduling {
 	// case that the chosen slot appears to be occupied
 	private double chance = 0.5;
 
-	public FingerprintScheduling(int numClients, int numSlots, int numBits, double activity, StatisticsTracker tracker) {
+	public FingerprintScheduling(int numClients, int numSlots, int numBits, double activity, boolean stopOnConvergence, StatisticsTracker tracker) {
 		this.c = numClients;
 		this.s = numSlots;
 		this.b = numBits;
 		this.a = activity;
 		this.tracker = tracker;
+		this.stopOnConvergence = stopOnConvergence;
 		sentBits = new long[c];
 
 		hasSent = new boolean[c];
@@ -84,6 +86,7 @@ public class FingerprintScheduling {
 					requiredRounds = round + 1;
 				}
 				succeeded = true;
+				if (stopOnConvergence) break;
 			} else {
 				requiredRounds = s;
 				succeeded = false;
