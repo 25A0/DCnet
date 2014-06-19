@@ -7,22 +7,38 @@ import java.util.concurrent.Semaphore;
 
 import cli.Debugger;
 import dc.DCPackage;
+import net.Connection;
+import net.Network;
+import net.PackageListener;
+import net.NetStatPackage;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.LinkedList;
 
 public class ConnectionBundle {
 	private final ArrayList<ConnectionHandler> chl;
 	private int connections;
+	private int activeConnections;
+
+	private int currentRound;
+
+	/**
+	 * This HashMap contains all connections that are identified by an alias.
+	 */
+	private final HashMap<String, ConnectionHandler> identifiedConnections;
 	
 	private DCPackage pendingPackage;
 	private int remaining;	
 
 	private boolean isClosed = false;
-	private final Semaphore inputAvailable;
 
 	private final LinkedList<DCPackage> inputBuffer;
+	private final Semaphore inputAvailable;
+
+	private final LinkedList<NetStatPackage> netStatBuffer;
+	private final Semaphore statusAvailable;
 		
 
 	/**
@@ -41,28 +57,63 @@ public class ConnectionBundle {
 
 		inputBuffer = new LinkedList<DCPackage>();
 		inputAvailable = new Semaphore(0);
+
+		netStatBuffer = new LinkedList<NetStatPackage>();
+		statusAvailable = new Semaphore(0);
 		
 		connections = 0;
+		activeConnections = 0;
+		identifiedConnections = new HashMap<String, ConnectionHandler>();
+
+		currentRound = 0;
 	}
 	
 	public void addConnection(Connection c) {
-		Debugger.println(2, "[ConnectionBundle] New connection to " + c.toString());
+		Debugger.println("network", "[ConnectionBundle] New connection to " + c.toString());
 		
 		accessSemaphore.acquireUninterruptibly();
 			ConnectionHandler ch = new ConnectionHandler(c);
+			c.setListener(ch);
 			chl.add(ch);
-			connections++;
-			remaining++;
-			(new Thread(ch)).start();
+			connections ++;
 		accessSemaphore.release();
 	}
 	
-	public void removeConnection(Connection c) {
+	public void removeConnection(ConnectionHandler ch) {
 		accessSemaphore.acquireUninterruptibly();
 			connections--;
-			remaining--;
-			chl.remove(c);
+			chl.remove(ch);
+			if(ch.isActive) {
+				// Communicate this to the server
+				NetStatPackage nsp = new NetStatPackage.Leaving(ch.alias);
+				netStatBuffer.add(nsp);
+				statusAvailable.release();
+			}
 		accessSemaphore.release();
+	}
+
+	public void handle(NetStatPackage message) {
+		if(message instanceof NetStatPackage.Joining) {
+			String alias = ((NetStatPackage.Joining) message).getStation();
+			Debugger.println("network", "[ConnectionBundle] Station " + alias + " joined the network.");
+			if(identifiedConnections.containsKey(alias)) {
+				ConnectionHandler ch = identifiedConnections.get(alias);
+				ch.setStatus(true);
+				activeConnections++;
+			}
+		} else if(message instanceof NetStatPackage.Leaving) {
+			String alias = ((NetStatPackage.Leaving) message).getStation();
+			Debugger.println("network", "[ConnectionBundle] Station " + alias + " left the network.");
+			if(identifiedConnections.containsKey(alias)) {
+				ConnectionHandler ch = identifiedConnections.get(alias);
+				ch.setStatus(false);
+				activeConnections--;
+				// everyone will resend their messages.
+				resetRound();
+			}
+		} 
+		// We don't handle snapshot messages. 
+		
 	}
 	
 	public void broadcast(DCPackage message) {
@@ -76,8 +127,27 @@ public class ConnectionBundle {
 		}
 	}
 
-	public void close() {
-		// TODO: close individual connections
+	public void broadcast(NetStatPackage message) {
+		for(ConnectionHandler ch: chl) {
+			try {
+				ch.c.send(message);
+			} catch(IOException e) {
+				Debugger.println(1, e.getMessage());
+			}
+		}
+	}
+
+	public void pulse() {
+		DCPackage pulsePackage = new DCPackage(currentRound, new byte[DCPackage.PAYLOAD_SIZE]);
+		currentRound = (currentRound+1) % pulsePackage.getNumberRange();
+		resetRound();
+		broadcast(pulsePackage);
+	}
+
+	public void close() throws IOException {
+		for(ConnectionHandler ch: chl) {
+			ch.close();
+		}
 		isClosed = true;
 	}
 
@@ -91,36 +161,56 @@ public class ConnectionBundle {
 		}
 	}
 	
-	public DCPackage receive() {
+	public DCPackage receiveDCPackage() {
 		inputAvailable.acquireUninterruptibly();
 		return inputBuffer.pop();
+	}
+
+	public NetStatPackage receiveStatusPackage() {
+		statusAvailable.acquireUninterruptibly();
+		return netStatBuffer.pop(); 
 	}
 
 	/**
 	 * Adds a package to the input of the current round.
 	 * @param input The input to be added
 	 */
-	private void addInput(DCPackage input) {
+	private void addBundleInput( DCPackage input) {
 		if(input.getPayload().length != DCPackage.PAYLOAD_SIZE) {
 			throw new InputMismatchException("The provided input has length " + input.getPayload().length + " but should be " + DCPackage.PAYLOAD_SIZE);
 		} else {
 			int round = input.getNumber();
+			if(round != currentRound) {
+				// we refuse this package.
+				Debugger.println("protocol", "[ConnectionBundle] Refusing package because of wrong round number. Is " + round + " but should be " + currentRound);
+				return;
+			}
 			if(pendingPackage == null) {
 				pendingPackage = input;
 			} else {
-				pendingPackage.combine(input);
+				try {
+					pendingPackage.combine(input);
+				} catch(InputMismatchException e) {
+					Debugger.println("protocol", "[ConnectionBundle] An error occurred while trying to combine a new package with the existing package.");
+					return;
+				}
 			}
 			remaining--;
-			Debugger.println(2, "[ConnectionBundle] Remaining messages: " + remaining);
+			Debugger.println("protocol", "[ConnectionBundle] Remaining messages: " + remaining);
 			if(remaining == 0) {
-				Debugger.println(2, "[ConnectionBundle] Composed input: " + pendingPackage.toString());
+				Debugger.println("protocol", "[ConnectionBundle] Round " + currentRound + " is completed.");
 				inputBuffer.add(pendingPackage);
 				inputAvailable.release();
-				
-				pendingPackage = null;
-				remaining = connections;
+				currentRound = (pendingPackage.getNumber()+1) % pendingPackage.getNumberRange();
+
+				resetRound();
 			}
 		}
+	}
+
+	private void resetRound() {
+		pendingPackage = null;
+		remaining = activeConnections;	
 	}
 
 	/**
@@ -138,31 +228,54 @@ public class ConnectionBundle {
 	}
 
 
-	private class ConnectionHandler implements Runnable {
-		private boolean isClosed = false;
+	private class ConnectionHandler implements PackageListener {
 		public final Connection c;
+
+		public String alias = null;
+		public boolean isActive = false;
 
 		public ConnectionHandler(Connection c) {
 			this.c = c;
 		}
 
-		public void close() {
+		public void close() throws IOException {
+			c.close();
 			isClosed = true;
 		}
 
+		public void setStatus(boolean isActive) {
+			Debugger.println("network", "[ConnectionBundle] Station " + alias + " is now " + (isActive?"active.":"inactive."));
+			this.isActive = isActive;
+		}
+
 		@Override
-		public void run() {
-			while(!isClosed) {
-				DCPackage input;
-				try {
-					input = c.receiveMessage();
-					accessSemaphore.acquireUninterruptibly();
-					addInput(input);
-					accessSemaphore.release();
-				} catch (IOException e) {
-					Debugger.println(1, e.getMessage());
-				}
+		public void addInput(DCPackage message) {
+			// Refuse message if this connection isn't active.
+			if(!isActive) {
+				Debugger.println("protocol", "[ConnectionBundle] Refusing package since station is not in active state");
+				return;
 			}
+			accessSemaphore.acquireUninterruptibly();
+			addBundleInput(message);
+			accessSemaphore.release();
+		}
+
+		@Override
+		public void addInput(NetStatPackage message) {
+			if(!isActive && message instanceof NetStatPackage.Joining) {
+				// We now know which alias belongs to this connection.
+				alias = ((NetStatPackage.Joining) message).getStation();
+				identifiedConnections.put(alias, this);
+				Debugger.println("network", "[ConnectionHandler] One connection was identified as being " + alias);
+			}
+			netStatBuffer.add(message);
+			statusAvailable.release();
+		}
+
+		@Override
+		public void connectionLost(String message) {
+			Debugger.println("network", "[ConnectionBundle] Lost connection to client: " + message);
+			removeConnection(this);
 		}
 	}
 

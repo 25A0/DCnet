@@ -2,8 +2,8 @@ package dc;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.util.Collection;
+import java.util.ArrayList;
 
 import com.neilalexander.jnacl.crypto.salsa20;
 
@@ -11,10 +11,12 @@ import com.neilalexander.jnacl.crypto.salsa20;
 
 import dc.DCPackage;
 import cli.Debugger;
+import util.HashUtil;
+
+import net.Network;
 
 public class KeyHandler {
-	private static MessageDigest md;
-	private static final String HASH_ALG = "SHA-256";
+	private static HashUtil hu = new HashUtil(HashUtil.SHA_256);
 	public static final int KEY_SIZE = 32;
 	// Nonce size must not be larger than key size.
 	public static final int NONCE_SIZE = 8;
@@ -25,17 +27,6 @@ public class KeyHandler {
 
 	private int numKeys;
 
-	static {
-		try {
-			md = MessageDigest.getInstance(HASH_ALG);
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			System.err.println("[KeyHandler] Severe: The algorithm "+HASH_ALG+" is not available. Make sure that your JRE provides an implementation of " + HASH_ALG);
-			e.printStackTrace();
-			System.exit(1);
-		}
-	}
-	
 	public KeyHandler(String alias) {
 		this.alias = alias;
 		keychain = new HashMap<String, KeyNoncePair>();
@@ -43,8 +34,7 @@ public class KeyHandler {
 
 	public void addKey(String foreignAlias)  {
 		String baseString = symmetricConcat(alias, foreignAlias);
-		md.update(baseString.getBytes());
-		byte[] hash = md.digest();
+		byte[] hash = hu.digest(baseString.getBytes());
 		addKey(foreignAlias, hash);
 	}
 	
@@ -52,7 +42,7 @@ public class KeyHandler {
 		if(key.length != KEY_SIZE) {
 			System.err.println("[KeyHandler] Severe: The provided key has length " + key.length + " but it has to be of length " + KEY_SIZE + ".");
 		} else {
-			Debugger.println(2, "[KeyHandler] Adding key " + Arrays.toString(key) + " for station " + c + " to keychain.");
+			Debugger.println("keys", "[KeyHandler] Adding key " + Arrays.toString(key) + " for station " + c + " to keychain.");
 			synchronized(keychain) {
 				KeyNoncePair knp = new KeyNoncePair(key);
 				keychain.put(c, knp);
@@ -68,43 +58,67 @@ public class KeyHandler {
 		}
 	}
 	
-	public byte[] getOutput(int length) {
-		return nextKeyMix(length);		
+	public byte[] getOutput(int length, Collection<String> members) {
+		Collection<String> cutSet = getCutSet(members);
+		return nextKeyMix(length, cutSet);		
 	}
 	
-	/**
-	 * Turns plain messages into encrypted output
-	 * @param  scheduling The byte array of scheduling information
-	 * @param  message    The byte array containing the message payload
-	 * @return            A byte array that contains the encrypted concatenation of both inputs
-	 */
-	public byte[] getOutput(byte[] scheduling, byte[] message) {
+	public byte[] getOutput(byte[] scheduling, byte[] message, Collection<String> members) {
 		int length = scheduling.length + message.length;
+		Collection<String> cutSet = getCutSet(members);
 		byte[] output = new byte[length];
-		byte[] currentKeyMix = nextKeyMix(length);
+		byte[] currentKeyMix = nextKeyMix(length, cutSet);
 		for(int i = 0; i < scheduling.length; i++) {
 			output[i] = (byte) (scheduling[i] ^ currentKeyMix[i]);
 		}
 		for(int i = 0; i < message.length; i++) {
+			// TODO: recurring key. issue?
 			output[i + scheduling.length] = (byte) (message[i] ^ currentKeyMix[i % currentKeyMix.length]);
 		}
 		return output;
 	}
 
-	private byte[] nextKeyMix(int length) {
+	/**
+	 * Returns the next key mix, given the set of aliases that should be used.
+	 * @param length The desired length of the key
+	 * @param members The set of aliases that will determine which keys will be used.
+	 * @return  A byte array that contains the combined keys of all aliases that were found in {@code members}.
+	 */
+	private byte[] nextKeyMix(int length, Collection<String> members) {
 		byte[] keyMix = new byte[length];
 		synchronized(keychain) {
-			for(KeyNoncePair knp: keychain.values()) {
+			for(String alias: members) {
+				KeyNoncePair knp = keychain.get(alias);
 				knp.encrypt(keyMix);
 			}	
 		}
-		Debugger.println(2, "[KeyHandler] Station "+ alias+ " has keyMix: " + Arrays.toString(keyMix));
+		Debugger.println("keys", "[KeyHandler] Station "+ alias+ " has keyMix: " + Arrays.toString(keyMix));
 		return keyMix;
 	}
 
-	public boolean approved() {
+	public boolean approved(Collection<String> networkMembers) {
+		Collection<String> cutSet = getCutSet(networkMembers);
+		return cutSet.size() >= DCConfig.MIN_NUM_KEYS;
+	}
+
+	/**
+	 * Draws a subset from the passed set that contains all
+	 * entries of the passed set that are known by this 
+	 * KeyHandler.
+	 * @param  networkMembers The collection of members on this network
+	 * @return                The cut-set of {@code networkMembers} with {@code keychain.keySet()}.
+	 */
+	private Collection<String> getCutSet(Collection<String> networkMembers) {
 		synchronized(keychain) {
-			return numKeys >= DCConfig.MIN_NUM_KEYS;
+			ArrayList<String> cutSet = new ArrayList<String>();
+			// networkMembers might be bigger than keychain.keySet()
+			// but lookups are faster in HashMaps than in Collections.
+			for(String s: networkMembers) {
+				if(keychain.containsKey(s)) {
+					cutSet.add(s);
+				}
+			}
+			return cutSet;
 		}
 	}
 

@@ -7,6 +7,8 @@ import java.util.LinkedList;
 import dc.DCPackage;
 import util.Padding10;
 
+import cli.Debugger;
+
 /**
  * A buffer that is used by a DcClient to store messages that have yet to be sent.
  */
@@ -15,7 +17,7 @@ public class MessageBuffer extends OutputStream {
 		private final int payloadSize;
 		// The size of a message.
 		private final int messageSize;
-		// The message that was sent most recently but was not succesfully delivered yet
+		// The message that was sent most recently but was not successfully delivered yet
 		private byte[] pendingMessage;
 		// A buffer that holds all unsent messages
 		private final LinkedList<byte[]> messageBuffer;
@@ -24,6 +26,9 @@ public class MessageBuffer extends OutputStream {
 		private int writePointer;
 		// The message that is currently build up from user input
 		private byte[] currentMessage;
+
+		private long startTime;
+		private int deliveredPackages;
 
 		/**
 		 * Initializes the messageBuffer for a given message size.
@@ -48,15 +53,32 @@ public class MessageBuffer extends OutputStream {
 		}
 		
 		public synchronized void write(byte b){
+			startTime = System.currentTimeMillis();
 			currentMessage[writePointer] = b;
 			writePointer++;
 			if(writePointer >= messageSize) {
-				synchronized(messageBuffer) {
-					messageBuffer.add(currentMessage);
-				}
-				currentMessage = new byte[messageSize];
-				writePointer = 0;
+				stop();
 			}
+		}
+
+		/**
+		 * Concludes an ongoing input stream and pushes the collected data to the
+		 * message buffer. 
+		 * Conceptually similar to a full stop, hence the name.
+		 */
+		public void stop() {
+			// Note: writePointer will be one ahead of the last message byte, so
+			// we can read it as size in this case
+			byte[] message = new byte[writePointer];
+			for(int i = 0; i < writePointer; i++) {
+				message[i] = currentMessage[i];
+			}
+			synchronized(messageBuffer) {
+				messageBuffer.add(message);
+			}
+			// No need to replace currentMessage, 
+			// new payload will simply replace it.
+			writePointer = 0;
 		}
 
 		/**
@@ -99,6 +121,15 @@ public class MessageBuffer extends OutputStream {
 		}
 
 		/**
+		 * Checks whether the underlying buffer still contains messages to be sent.
+		 * Should be combined with {@code hasPendingMessage} to find out if there
+		 * are still messages to be sent in general.
+		 */
+		public boolean isEmpty() {
+			return messageBuffer.isEmpty() && writePointer == 0;
+		}
+
+		/**
 		 * Confirms that the currently pending message has been succesfully delivered.
 		 */
 		public void confirmMessage() {
@@ -106,6 +137,12 @@ public class MessageBuffer extends OutputStream {
 				throw new IllegalStateException("Message was confirmed although messageBuffer was not waiting for a confirmation.");
 			} else {
 				pendingMessage = null;
+				deliveredPackages++;
+				if(messageBuffer.isEmpty()) {
+					long interval = System.currentTimeMillis() - startTime;
+					Debugger.println("throughput", "Delivered " + deliveredPackages +" packages in " + interval/1000 +" seconds.");
+					deliveredPackages = 0;
+				}
 			}
 		}
 

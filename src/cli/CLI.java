@@ -7,6 +7,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileInputStream;
 
+import java.util.Set;
+
 /**
  * <h2>Command line interface</h2>
  * @author Moritz Neikes
@@ -31,7 +33,7 @@ public class CLI {
 	private boolean stopped = false;
 	
 	/**
-	 * Initialises a new Command Line Interface. This interface holds a controller
+	 * Initializes a new Command Line Interface. This interface holds a controller
 	 * to handle commands.
 	 * @param controller The controller that handles user commands
 	 * @param args The list of arguments which are still to be evaluated
@@ -56,12 +58,13 @@ public class CLI {
 	 * @throws IOException
 	 */
 	private void readLoop() throws IOException {
-		while(!stopped) {
+		String s;
+		do {
 			System.out.print("[DCnet] ");
-			String s = br.readLine();
-			// TODO split on complete whitespaces, not just spaces
+			s = br.readLine();
+			if(s == null) return;
 			controller.handle(new ArgSet(s));
-		}
+		} while(!stopped);
 	}
 	
 	/**
@@ -87,6 +90,33 @@ public class CLI {
 				}
 			};
 
+			Action debugTrackAddAction = new Action() {
+				@Override
+				public void execute(ArgSet args) {
+					String tag = args.pop();
+					Debugger.trackAdd(tag);
+				}
+			};
+
+			Action debugTrackRemoveAction = new Action() {
+				@Override
+				public void execute(ArgSet args) {
+					String tag = args.pop();
+					Debugger.trackRemove(tag);
+				}
+			};
+
+			Action debugTrackListAction = new Action() {
+				@Override
+				public void execute(ArgSet args) {
+					Set<String> tags = Debugger.seenTags();
+					System.out.println("Seen tags:");
+					for(String s: tags) {
+						System.out.println("\t " + s);
+					}
+				}
+			};
+
 			Action scriptAction = new Action() {
 				@Override
 				public void execute(ArgSet args) {
@@ -97,11 +127,14 @@ public class CLI {
 						try {
 							File f = new File(path);
 							BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(f)));
-							while(br.ready()) {
-								String s = br.readLine();
-								controller.handle(new ArgSet(s));
-							}
-							// f.close();
+							String s;
+							do {
+								s = br.readLine();
+								if(s != null) {
+									controller.handle(new ArgSet(s));
+								}
+							} while(s != null);
+							br.close();
 						} catch(FileNotFoundException e) {
 							System.out.println("[CommandLineInterface] The file " + path + " does not exist.");
 						} catch(IOException e) {
@@ -129,8 +162,10 @@ public class CLI {
 			Action innerAction = new CommandAction(innerController);
 			
 			mapCommand("exit", exitAction);
-			mapAbbreviation('d', debugAction);
-			mapOption("debug", debugAction);
+			getContext("debug").mapCommand("level", debugAction);
+			getContext("debug").getContext("track").mapCommand("add", debugTrackAddAction);
+			getContext("debug").getContext("track").mapCommand("remove", debugTrackRemoveAction);
+			getContext("debug").getContext("track").mapCommand("list", debugTrackListAction);
 			mapAbbreviation('r', scriptAction);
 			mapCommand("run", scriptAction);
 			mapCommand("echo", echoAction);

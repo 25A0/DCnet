@@ -13,6 +13,8 @@ import dc.scheduling.PrimitiveScheduler;
 import java.io.IOException;
 import java.util.Arrays;
 
+import net.NetStatPackage;
+import net.NetStatPackage.Joining;
 import util.Padding10;
 import cli.Debugger;
 
@@ -35,27 +37,13 @@ public class DcClient extends DCStation{
 	// takes longer to finish
 	public static final long WAIT_TIME = 1000;
 
-	// The number of times clients will wait before they assume that they
-	// are alone in the network or everyone is waiting for each other to start
-	public static final long AWKWARD_SILENCE_LIMIT = 3;
 	
 	
-	/**
-	 * This semaphore keeps track of the number of uncompleted rounds.
-	 */
-	private final Semaphore roundCompletionSemaphore;
-
 	protected final MessageBuffer mb;
 
 
 	public DcClient(String alias){
 		super(alias);
-		
-		/**
-		 * The number of initial releases determine how many rounds can run in parallel.
-		 * For now, more than one round at a time will break the protocol.
-		 */
-		roundCompletionSemaphore = new Semaphore(0);
 		
 		inputAvailable = new Semaphore(0);
 		inputBuffer = new LinkedList<byte[]>();
@@ -69,8 +57,6 @@ public class DcClient extends DCStation{
 		// -1 is the sentinel value for 'no round is scheduled for us'
 		nextScheduledRound = -1;
 		
-		// Start up the round initializer
-		(new Thread(new RoundInitializer())).start();
 		
 	}
 
@@ -85,6 +71,10 @@ public class DcClient extends DCStation{
 
 	public void send(String s) throws IOException {
 		mb.write(s.getBytes());
+	}
+
+	public void stop() {
+		mb.stop();
 	}
 	
 	public void send(byte b) throws IOException {
@@ -115,12 +105,12 @@ public class DcClient extends DCStation{
 	}
 
 	@Override
-	protected void addInput(DCPackage message) {
+	public void addInput(DCPackage message) {
 		byte[] inputPayload = null;
 		try {
 			inputPayload = Padding10.revert10padding(message.getMessage(scheduler.getScheduleSize()));
 		} catch(InputMismatchException e) {
-			System.out.println("Failed to revert 1- padding");
+			System.out.println("Failed to revert 1-0 padding: " + e.getMessage());
 		} 
 		int number = message.getNumber();
 		if(inputPayload != null) {
@@ -129,7 +119,7 @@ public class DcClient extends DCStation{
 			if(mb.hasPendingMessage() && number == nextScheduledRound) {
 				if(!mb.compareMessage(message.getMessage(scheduler.getScheduleSize()))) {
 					// TODO: report collision to statistics tracker.
-					System.out.println("[DcClient "+alias+"] Collision detected");
+					Debugger.println("collision", "[DcClient "+alias+"] Collision detected");
 				} else {
 					mb.confirmMessage();
 				}
@@ -137,70 +127,84 @@ public class DcClient extends DCStation{
 			inputBuffer.add(inputPayload);
 			inputAvailable.release();
 		}
-		if(scheduler.addPackage(message)) {
+		boolean waiting = mb.hasPendingMessage() || !mb.isEmpty();
+		if(isActive && scheduler.addPackage(message, waiting)) {
 			nextScheduledRound = scheduler.getNextRound();
+			Debugger.println("scheduling", "[DcClient "+alias+"] successfully scheduled slot: " + nextScheduledRound);	
 		}
 		nextRound = ++number % message.getNumberRange();
-		// Announce the end of the round no matter what.
-		roundCompletionSemaphore.release();	
+		if(isActive) {
+			sendOutput();
+		}
 	}
 
-	
-
-	private class RoundInitializer implements Runnable {
-		private int passedSilentRounds = 0;
-		@Override
-		public void run() {
-			while(!isClosed) {
-				connectionSemaphore.acquireUninterruptibly();
-				try{
-					Thread.sleep(WAIT_TIME);
-					if(nextRound == -1) {
-						// In this case we haven't received a message from our network yet
-						if(passedSilentRounds > AWKWARD_SILENCE_LIMIT) {
-							// We start sending and assume that the current round number is 0
-							Debugger.println(1, "[DcClient "+alias+"] starts sending after awkward silence");
-							nextScheduledRound = 0;
-							nextRound = 0;
-						} else {
-							// We keep waiting
-							passedSilentRounds++;
-							connectionSemaphore.release();
-							continue;
-						}
-					}
-				} catch (InterruptedException e) {
-					// ignore
+	@Override
+	public void addInput(NetStatPackage nsp) {
+		if(nsp instanceof NetStatPackage.Snapshot) {
+			synchronized(net) {
+				Debugger.println("network", "[DcClient " + alias + "] received Snapshot package");
+				nsp.apply(net);
+			}
+		} else if (nsp instanceof NetStatPackage.Joining) {
+			synchronized(net) {
+				nsp.apply(net);
+				String foreignAlias = ((NetStatPackage.Joining) nsp).getStation();
+				Debugger.println("network", "[DcClient " + alias + "] Station " + foreignAlias + " joined the network");
+				if(foreignAlias.equals(alias)) {
+					Debugger.println("network", "[DcClient " + alias + "] State changed to active");
+					isActive = true;
+				} 
+			}
+			//won't resend
+		} else {
+			synchronized(net) {
+				nsp.apply(net);
+				String foreignAlias = ((NetStatPackage.Leaving) nsp).getStation();
+				Debugger.println("network", "[DcClient " + alias + "] Station " + foreignAlias + " left the network");
+				if(foreignAlias.equals(alias)) {
+					Debugger.println("network", "[DcClient " + alias + "] State changed to inactive");
+					isActive = false;
+				} else {
+					sendOutput();
 				}
-				byte[] output;
-				synchronized(kh) {
-					byte[] message;
-					/**
-					 *  Make sure that there are enough connections and test if we planned to send an actual message in the upcoming round. 
-					 *  This prevents stations from broadcasting messages once the number of connections drops below
-					 *  the minimum. If too little connections are available, then the station
-					 *  will only send empty messages
-					 */
-					if(kh.approved() && nextScheduledRound == nextRound) {
-						message = mb.getMessage();
-					} else {
-						message = new byte[DCPackage.PAYLOAD_SIZE - scheduler.getScheduleSize()];
-					}
-					Debugger.println(2, "[DcClient "+alias+"] Sending message " + Arrays.toString(message));
-					output = kh.getOutput(scheduler.getSchedule(), message);
-					Debugger.println(2, "[DcClient "+alias+"] Sending output " + Arrays.toString(output));
-					
-				}
-				DCPackage pckg = new DCPackage(nextRound, output);
-				broadcast(pckg);
-				
-				connectionSemaphore.release();
-				// Wait until a new round can be started
-				roundCompletionSemaphore.acquireUninterruptibly();
 			}
 		}
 	}
 
 	
 
+	private void sendOutput() {
+		// try{
+		// 	Thread.sleep(WAIT_TIME);
+		// } catch (InterruptedException e) {
+		// 	// duh
+		// }
+		if(isClosed()) return;
+		byte[] output;
+		synchronized(kh) { 
+			synchronized(net) {
+				byte[] message;
+				/**
+				 *  Make sure that there are enough connections. This prevents stations
+				 *  from broadcasting messages once the number of connections drops below
+				 *  the minimum. If too little connections are available then the station
+				 *  will only send empty messages
+				 */
+				// System.out.println(alias + ": Are we allowed to send? " + (kh.approved(net.getStations())? " Yes":"No"));
+				if(kh.approved(net.getStations()) && nextScheduledRound == nextRound) {
+					Debugger.println("messages", "[DcClient " + alias + "] Sending...");
+					message = mb.getMessage();
+				} else {
+					message = new byte[DCPackage.PAYLOAD_SIZE - scheduler.getScheduleSize()];
+				}
+				Debugger.println(2, "[DcClient "+alias+"] Sending message " + Arrays.toString(message));
+				output = kh.getOutput(scheduler.getSchedule(), message, net.getStations());
+				Debugger.println(2, "[DcClient "+alias+"] Sending output " + Arrays.toString(output));
+				
+			} 
+		}
+		DCPackage pckg = new DCPackage(nextRound, output);
+		broadcast(pckg);
+	}
+	
 }

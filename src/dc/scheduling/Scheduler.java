@@ -6,9 +6,10 @@ public interface Scheduler {
 	/**
 	 * Forwards the result of a round to this Scheduler.
 	 * @param  p The package that was the result of the last round
+	 * @param  waiting Whether the client is actually waiting for a free slot to send data.
 	 * @return   true if the outcome of this round results in a different schedule, false otherwise.
 	 */
-	public boolean addPackage(DCPackage p);
+	public boolean addPackage(DCPackage p, boolean waiting);
 
 	/**
 	 * Returns the size of the scheduling block in bytes

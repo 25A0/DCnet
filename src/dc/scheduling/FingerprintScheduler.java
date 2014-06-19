@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.InputMismatchException;
 
+import cli.Debugger;
 import dc.DCPackage;
 
 public class FingerprintScheduler implements Scheduler {
@@ -13,12 +14,12 @@ public class FingerprintScheduler implements Scheduler {
 	private final int bytesPerSlot = 1;
 	// The slot that we desire to reserve
 	private int desiredSlot;
-	// The slot that we <b> succesfully </b> reserved
+	// The slot that we <b> successfully </b> reserved
 	private int chosenSlot;
 	// The number of slots in the schedule. This equals the size of the scheduling phase.
 	private final int numSlots;
 	
-	// The likelyhood that we withdraw our reservation attempt if we encounter a collision
+	// The likelihood that we withdraw our reservation attempt if we encounter a collision
 	// default is 0.5
 	private static final double WITHDRAW_CHANCE = 0.5;
 
@@ -32,7 +33,7 @@ public class FingerprintScheduler implements Scheduler {
 	public FingerprintScheduler(int numSlots) {
 		this.numSlots = numSlots;
 		desiredSlot = (int) (Math.random() * (double) numSlots);
-		// System.out.println("[FingerprintScheduler] Attempting to reserve slot \t" + desiredSlot);
+		Debugger.println("scheduling", "[FingerprintScheduler] Attempting to reserve slot \t" + desiredSlot);
 		chosenSlot = -1;
 		random = new Random();
 		refreshFingerprint();
@@ -40,11 +41,17 @@ public class FingerprintScheduler implements Scheduler {
 
 	
 	@Override
-	public boolean addPackage(DCPackage p) {
+	public boolean addPackage(DCPackage p, boolean waiting) {
 		if(p.getNumberRange() != numSlots) {
-			throw new InputMismatchException("[FingerprintScheduler] umm... the numberRange is " + p.getNumberRange() + " but the number of slots is " + numSlots+
-				". This is not gonna work...");
+			throw new InputMismatchException("[FingerprintScheduler] The numberRange is " + p.getNumberRange() + " but the number of slots is " + numSlots+".");
 		}
+		
+		// If we do not want to reserve a slot, then the desired 
+		// slot is set to the sentinel value -1. This will cancel 
+		// scheduling for the ongoing cycle, since clients can not
+		// re-enter scheduling once they've left.
+		if(!waiting) desiredSlot = -1;
+
 		byte[] schedule = p.getSchedule(getScheduleSize());
 		boolean hasCollision = hasCollision(schedule);
 		refreshFingerprint();
@@ -52,14 +59,14 @@ public class FingerprintScheduler implements Scheduler {
 			// This is the last round of this schedule. If there is no collision then we have found a round for the upcoming phase
 			if(!hasCollision) {
 				chosenSlot = desiredSlot;
-				// System.out.println("[FingerprintScheduler] Succesfully reserved \t" + desiredSlot);
+				Debugger.println("scheduling", "[FingerprintScheduler] Succesfully reserved \t" + desiredSlot);
 			} else {
 				chosenSlot = -1;
-				// System.out.println("[FingerprintScheduler] Failed at reserving \t" + desiredSlot);
+				Debugger.println("scheduling", "[FingerprintScheduler] Failed at reserving \t" + desiredSlot);
 			}
 			// Pick a different slot for the next round
 			desiredSlot = (int) (Math.random() * (double) numSlots);
-			// System.out.println("[FingerprintScheduler] Attempting to reserve slot \t" + desiredSlot);
+			Debugger.println("scheduling", "[FingerprintScheduler] Attempting to reserve slot \t" + desiredSlot);
 			// No matter if we succeeded or not, there is a new round number
 			return true;
 		} else {
@@ -70,14 +77,14 @@ public class FingerprintScheduler implements Scheduler {
 					// If there are free slots left, then we'll move to one of them.
 					// Otherwise pickFree will return -1, indicating that we don't attempt to reserve a slot any longer.
 					desiredSlot = pickFree(schedule);
-					// System.out.println("[FingerprintScheduler] Moved to free slot \t" + desiredSlot);
+					Debugger.println("scheduling", "[FingerprintScheduler] Moved to free slot \t" + desiredSlot);
 				} else {
 					// We simply stick to our current slot.
-					// System.out.println("[FingerprintScheduler] Sticking to slot \t" + desiredSlot + " although collision");
+					Debugger.println("scheduling", "[FingerprintScheduler] Sticking to slot \t" + desiredSlot + " although collision");
 				}
 			} else {
 				// If there's no collision then we simply stick to our current desired slot
-				// System.out.println("[FingerprintScheduler] Sticking to slot \t" + desiredSlot);
+				Debugger.println("scheduling", "[FingerprintScheduler] Sticking to slot \t" + desiredSlot);
 			}
 			// Return false since this was not the last round of the current phase.
 			return false;

@@ -15,6 +15,8 @@ public class DCConfig {
 
 	public static final int PACKAGE_SIZE = 1024;
 
+	public static final int ALIAS_LENGTH = 8;
+
 	public static final SchedulingMethod schedulingMethod = SchedulingMethod.FINGERPRINT;
 
 	public enum SchedulingMethod {
