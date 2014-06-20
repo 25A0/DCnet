@@ -138,8 +138,60 @@ public class SchedulingController extends CLC {
 			}
 		};
 
+		Action herbivoreAction = new Action() {
+			private double activity;
+			private int avgs;
+
+
+			@Override
+			public void execute(ArgSet args) {
+				activity = Double.valueOf(args.pop());
+
+				Integer[] clients;
+				try {
+					ArgSet cas = args.fetchList();
+					ArrayList<Integer> cl = new ArrayList<Integer>();
+					while(cas.hasIntArg()) {
+						cl.add(cas.fetchInteger());
+					}
+					clients = cl.toArray(new Integer[cl.size()]);
+				} catch(InputMismatchException e) {
+					clients = new Integer[] {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
+				}
+				int cc = clients.length;
+				double[] bytesPerReservation = new double[cc];
+				double[] coverage = new double[cc];
+				System.out.println("Executing HERBIVORE benchmark for " + activity*100 +"% client activity");
+				for(int i = 0; i < cc; i++) {
+					System.out.print("["+(i+1)+"/"+cc+"]\t" + clients[i] + " client(s)\t");
+					StatisticsTracker tracker = benchmark(clients[i]);
+					bytesPerReservation[i] = tracker.getAverageBytesPerReservation();
+					coverage[i] = tracker.getCoverage();
+					System.out.println("\t [DONE]");
+				}
+
+				System.out.println(" DONE");
+				System.out.println("Clients: \n" + Arrays.toString(clients));
+				System.out.println("Sent bytes per reservation:\n" + Arrays.toString(bytesPerReservation));
+				System.out.println("Coverage:\n" + Arrays.toString(coverage));
+			}
+
+			private StatisticsTracker benchmark(int clients) {
+				StatisticsTracker tracker = new StatisticsTracker();
+				HerbivoreScheduling s = new HerbivoreScheduling(clients, activity, tracker);
+				int steps = (clients/100) + 1;
+				do {
+					s.schedule();
+					if(avgs%steps == 0) System.out.print(".");
+					avgs++;
+				} while(!s.finished());
+				return tracker;
+			}
+		};
+
 		mapCommand("fingerprint", fingerprintAction);
 		mapCommand("pfitzmann", pfitzmannAction);
+		mapCommand("herbivore", herbivoreAction);
 	}
 
 }
