@@ -1,0 +1,7 @@
+echo "FINGERPRINT SCHEDULING"
+echo "Benchmarking number of required rounds for fingerprint scheduling, capping at 64 rounds."
+scheduling fingerprint 64 4 1.0
+scheduling fingerprint 64 5 1.0 
+scheduling fingerprint 64 6 1.0 
+scheduling fingerprint 64 7 1.0 
+scheduling fingerprint 64 8 1.0 

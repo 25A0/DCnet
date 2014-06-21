@@ -1,0 +1,8 @@
+echo "FINGERPRINT SCHEDULING"
+echo "Benchmarking data volume profile for different numbers of rounds per cycle."
+scheduling fingerprint 8 8 1.0
+scheduling fingerprint 16 8 1.0 
+scheduling fingerprint 24 8 1.0 
+scheduling fingerprint 32 8 1.0 
+scheduling fingerprint 48 8 1.0 
+scheduling fingerprint 32 8 1.0 true

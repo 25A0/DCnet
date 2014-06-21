@@ -1,0 +1,7 @@
+echo "FINGERPRINT SCHEDULING"
+echo "Benchmarking performance in case scheduling stops on convergence"
+scheduling fingerprint 32 4 1.0 true
+scheduling fingerprint 32 5 1.0 true
+scheduling fingerprint 32 6 1.0 true
+scheduling fingerprint 32 7 1.0 true
+scheduling fingerprint 32 8 1.0 true
