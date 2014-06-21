@@ -1,0 +1,4 @@
+echo "Running scripts on client activity..."
+run scripts/benchmarks/herbivore_activity
+run scripts/benchmarks/fingerprint_activity
+run scripts/benchmarks/pfitzmann_activity
