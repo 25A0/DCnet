@@ -94,7 +94,6 @@ public class SchedulingController extends CLC {
 			@Override
 			public void execute(ArgSet args) {
 				numSlots = args.fetchInteger();
-				activity = Double.valueOf(args.pop());
 
 				Integer[] clients;
 				try {
@@ -106,6 +105,11 @@ public class SchedulingController extends CLC {
 					clients = cl.toArray(new Integer[cl.size()]);
 				} catch(InputMismatchException e) {
 					clients = new Integer[] {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
+				}
+				if(args.hasArg()){
+					activity = Double.valueOf(args.pop());
+				} else {
+					activity = 1d;
 				}
 				int cc = clients.length;
 				double[] bytesPerReservation = new double[cc];
@@ -145,8 +149,6 @@ public class SchedulingController extends CLC {
 
 			@Override
 			public void execute(ArgSet args) {
-				activity = Double.valueOf(args.pop());
-
 				Integer[] clients;
 				try {
 					ArgSet cas = args.fetchList();
@@ -157,6 +159,11 @@ public class SchedulingController extends CLC {
 					clients = cl.toArray(new Integer[cl.size()]);
 				} catch(InputMismatchException e) {
 					clients = new Integer[] {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000};
+				}
+				if(args.hasArg()) {
+					activity = Double.valueOf(args.pop());
+				} else {
+					activity = 1d;
 				}
 				int cc = clients.length;
 				double[] bytesPerReservation = new double[cc];

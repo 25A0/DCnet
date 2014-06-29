@@ -48,7 +48,7 @@ public class MultiStationInterface extends CLC {
 			@Override
 			public void execute(ArgSet args) {
 				String s = args.pop();
-				System.out.println("[MultiStationInterface] No command is associated with \"" + s + "\". If you want to create a station with that alias, use \"station make "+s+"\"");
+				System.out.println("[ERROR] No command is associated with \"" + s + "\". If you want to create a station with that alias, use \"station make [server | client] "+s+"\"");
 			}
 		};
 		
@@ -56,11 +56,11 @@ public class MultiStationInterface extends CLC {
 			@Override
 			public void execute(ArgSet args) {
 				if(!args.hasArg()) {
-					System.out.println("[MultiStationInterface] Please provide the alias of the server you want to connect to, followed by one or more stations.");
+					System.out.println("[ERROR] Please provide the alias of the server you want to connect to, followed by one or more stations.");
 				} else {
 					String serverAlias = args.pop();
 					if(!servers.containsKey(serverAlias)) {
-						System.out.println("[MultiStationInterface] There is no server called " + serverAlias);
+						System.out.println("[ERROR] There is no server called " + serverAlias);
 					} else {
 						DcServer server = servers.get(serverAlias);
 						while(args.hasArg()) {
@@ -72,7 +72,7 @@ public class MultiStationInterface extends CLC {
 								DCStation station = clients.get(stationAlias);
 								connectLocal(server, station);
 							} else {
-								System.out.println("[MultiStationInterface] There is no station called " + stationAlias);
+								System.out.println("[ERROR] There is no station called " + stationAlias);
 								return;
 							}
 						}
@@ -84,14 +84,14 @@ public class MultiStationInterface extends CLC {
 		create = new Action() {
 			@Override
 			public void execute(ArgSet args) {
-				System.out.println("[MultiStationInterface] Please provide a valid command of the form \"(make | m) (client|c|server|s) <alias>... \"");
+				System.out.println("[MultiStationInterface] Please provide a valid command of the form \"make (client|c|server|s) <alias>... \"");
 			}
 		};
 
 		createServer = new Action() {
 			@Override
 			public void execute(ArgSet args) {
-				boolean localFlag = args.hasAbbArg() && args.fetchAbbr() == 'l';
+				boolean localFlag = args.hasAbbArg() && args.fetchAbbr() == 'l' || args.hasOptionArg() && args.fetchOption().equals("local");
 				while(args.hasArg()) {
 					String alias = args.pop();
 					if(clients.containsKey(alias) || servers.containsKey(alias)) {
@@ -101,10 +101,14 @@ public class MultiStationInterface extends CLC {
 						if(localFlag) {
 							s = new DcServer(alias);
 						} else if(!args.hasIntArg()) {
-							System.out.println("[MultiStationInterface] Please provide a port number, or use option \"-l\" to start a local server.");
+							System.out.println("[MultiStationInterface] Please provide a port number, or use \"-l\" or \"--local\" to start a local server.");
 							return;
 						} else {
 							int port = args.fetchInteger();
+							if(port < 0 || port >= 65536) {
+								System.out.println("[MultiStationInterface] Please provide a port number in the range [0, 65536].");
+								return;
+							}
 							s = new DcServer(alias, port);
 						}
 						servers.put(alias, s);
@@ -132,8 +136,7 @@ public class MultiStationInterface extends CLC {
 
 		setRootAction(listAction);
 		setDefaultAction(noSuchStationAction);
-		mapAbbreviation('l', listAction);
-		mapOption("list", listAction);
+		mapCommand("list", listAction);
 		mapCommand("connect", connectLocal);
 		mapAbbreviation('c', connectLocal);
 		
@@ -141,7 +144,6 @@ public class MultiStationInterface extends CLC {
 		getContext("make").mapCommand("server", createServer);
 		getContext("make").mapCommand("client", createClient);
 
-		mapCommand("keys", new CommandAction(new KeyHandlerInterface()));
 	}
 
 	private void connectLocal(DcServer server, DCStation station) {
@@ -304,11 +306,11 @@ public class MultiStationInterface extends CLC {
 				@Override
 				public void execute(ArgSet args) {
 					if(!args.hasArg()) {
-						System.out.println("[MultiStationInterface] Please provide the alias of the server you want to connect to");
+						System.out.println("[ERROR] Please provide the alias of the server you want to connect to");
 					} else {
 						String serverAlias = args.pop();
 						if(!servers.containsKey(serverAlias)) {
-							System.out.println("[MultiStationInterface] There is no server called " + serverAlias);
+							System.out.println("[ERROR] There is no server called " + serverAlias);
 						} else {
 							DcServer server = servers.get(serverAlias);
 							connectLocal(server, station);
@@ -320,12 +322,12 @@ public class MultiStationInterface extends CLC {
 			connect = new Action() {
 				@Override
 				public void execute(ArgSet args) {
-					if(args.hasAbbArg() && args.fetchAbbr() == 'l') {
+					if(args.hasAbbArg() && args.fetchAbbr() == 'l' || args.hasOptionArg() && args.fetchOption().equals("local")) {
 						connectLocal.execute(args);
 						return;
 					}
 					if(!args.hasArg()) {
-						System.out.println("[MultiStationInterface] Please provide the address of the server you want to connect to");
+						System.out.println("[ERROR] Please provide the address of the server you want to connect to");
 					} else {
 						String url = args.pop();
 						int port;
@@ -346,8 +348,11 @@ public class MultiStationInterface extends CLC {
 			state = new Action() {
 				@Override
 				public void execute(ArgSet args) {
-					if(!args.hasArg()) {
-						System.out.println("Please specify the state that you want this station to switch to: \'active\' or \'inactive\'");
+					if(!station.isConnected()) {
+						System.out.println("[ERROR] This station is not yet connected to a server.");
+						return;
+					} else if(!args.hasArg()) {
+						System.out.println("Station " + station.getAlias() + " is " + (station.isActive()? "active":"inactive"));
 					} else if(args.peek().equalsIgnoreCase("active")) {
 						args.pop();
 						station.setState(true);
@@ -355,7 +360,7 @@ public class MultiStationInterface extends CLC {
 						args.pop();
 						station.setState(false);
 					} else {
-						System.out.println("The provided parameter did not match one of the options \'active\' or \'inactive\'.");
+						System.out.println("[ERROR] The provided parameter did not match one of the options \'active\' or \'inactive\'.");
 					}
 				}
 			};
@@ -374,6 +379,9 @@ public class MultiStationInterface extends CLC {
 			mapCommand("close", close);
 			mapCommand("connect", connect);
 			mapCommand("state", state);
+
+			mapCommand("keys", new CommandAction(new KeyHandlerInterface(station)));
+	
 		}
 
 		
@@ -385,30 +393,30 @@ public class MultiStationInterface extends CLC {
 
 	private class KeyHandlerInterface extends CLC {
 		private Action addAction;
-		public KeyHandlerInterface() {
-
+		private DCStation station;
+		public KeyHandlerInterface(DCStation s) {
+			this.station = s;
 
 			addAction = new Action() {
 				@Override
 				public void execute(ArgSet args) {
-					DCStation s1, s2;
+					String s2;
 					while(args.hasArg()) {
-						s1 = getStation(args);
-						s2 = getStation(args);
-						if(s1 == null || s2 == null || s1 == s2) {
-							System.err.println("[MultiStationInterface] Please provide two different stations");
+						s2 = args.fetchString();
+						if(s2 == null || station.getAlias().equals(s2)) {
+							System.err.println("[ERROR] Please provide two different stations");
 						} else {
 							if(args.hasAbbArg() && args.fetchAbbr().equals('k') || args.hasOptionArg() && args.fetchOption().equals("key")) {
 								if(!args.hasStringArg()) {
-									System.err.println("[StationInterface] No key has been provided although option \"key\" was set.");
+									System.err.println("[ERROR] No key has been provided although option \"key\" was set.");
 								} else {
 									byte[] key = args.fetchString().getBytes();
-									s1.getKeyHandler().addKey(s2.getAlias(), key);
-									s2.getKeyHandler().addKey(s1.getAlias(), key);
+									station.getKeyHandler().addKey(s2, key);
+									// s2.getKeyHandler().addKey(station.getAlias(), key);
 								}
 							} else {
-								s1.getKeyHandler().addKey(s2.getAlias());
-								s2.getKeyHandler().addKey(s1.getAlias());
+								station.getKeyHandler().addKey(s2);
+								// s2.getKeyHandler().addKey(station.getAlias());
 							}
 
 						}

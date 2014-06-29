@@ -95,6 +95,14 @@ public abstract class DCStation implements PackageListener{
 
 	}
 
+	public boolean isConnected() {
+		return c != null;
+	}
+
+	public boolean isActive() {
+		return isActive;
+	}
+
 	public KeyHandler getKeyHandler() {
 		return kh;
 	}
