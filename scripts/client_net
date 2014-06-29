@@ -2,10 +2,10 @@
 echo "setting up clients"
 dc make client c1 c2 c3
 echo "adding keys"
-dc c1 keys add c2 c3
-dc c2 keys add c1 c3
-dc c3 keys add c1 c2
-echo "connectiong to 192.168.2.74:4223"
-dc c1 connect 192.168.2.74 4223
-dc c2 connect 192.168.2.74 4223
-dc c3 connect 192.168.2.74 4223
+dc c1 keys add "c2" "c3"
+dc c2 keys add "c1" "c3"
+dc c3 keys add "c1" "c2"
+echo "connectiong to <insert address>"
+dc c1 connect <insert address>
+dc c2 connect <insert address>
+dc c3 connect <insert address>

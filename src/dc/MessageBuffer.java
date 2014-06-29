@@ -140,7 +140,7 @@ public class MessageBuffer extends OutputStream {
 				deliveredPackages++;
 				if(messageBuffer.isEmpty()) {
 					long interval = System.currentTimeMillis() - startTime;
-					Debugger.println("throughput", "Delivered " + deliveredPackages +" packages in " + interval/1000 +" seconds.");
+					Debugger.println("throughput", "Delivered " + deliveredPackages +" packages in " + interval/1000 + "."+ interval%1000 +" seconds.");
 					deliveredPackages = 0;
 				}
 			}
