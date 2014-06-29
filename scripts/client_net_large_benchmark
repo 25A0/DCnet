@@ -1,0 +1,18 @@
+echo "causing all clients to send <someFile>"
+debug track add throughput
+dc c1 send -f <someFile>
+dc c2 send -f <someFile> 
+dc c3 send -f <someFile> 
+dc c4 send -f <someFile> 
+dc c5 send -f <someFile> 
+dc c6 send -f <someFile> 
+dc c7 send -f <someFile> 
+dc c8 send -f <someFile> 
+dc c9 send -f <someFile> 
+dc c10 send -f <someFile> 
+dc c11 send -f <someFile> 
+dc c12 send -f <someFile> 
+dc c13 send -f <someFile> 
+dc c14 send -f <someFile> 
+dc c15 send -f <someFile> 
+dc c16 send -f <someFile> 

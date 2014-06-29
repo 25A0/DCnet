@@ -1,24 +1,50 @@
 # This script demonstrates how a network of multiple layers can be created
 echo "executing multi-server script"
 echo "setting up servers..."
-station make server -l s1 s2 s3 s4
-station connect s4 s3 s2 s1
-station keys add s1 s2 s1 s3 s2 s3
-station keys add s1 s4 s2 s4 s3 s4
+dc make server -l s1 s2 s3 s4
+dc s1 connect -l s4
+dc s2 connect -l s4
+dc s3 connect -l s4
+
+dc s1 keys add "s4"
+dc s2 keys add "s4"
+dc s3 keys add "s4"
+dc s4 keys add "s1" "s2" "s3"
+
+dc s1 state active
+dc s2 state active
+dc s3 state active
 echo "setting up clients..."
-station make client c1 c2 c3
-station c1 connect -l s1
-station c2 connect -l s1
-station c3 connect -l s1
-station make client c4 c5 c6
-station c4 connect -l s2
-station c5 connect -l s2
-station c6 connect -l s2
-station make client c7 c8 c9
-station c7 connect -l s3
-station c8 connect -l s3
-station c9 connect -l s3
-station keys add c1 c8 c1 c3 c2 c3
-station keys add c4 c5 c4 c6 c5 c6
-station keys add c7 c2 c7 c9 c8 c9
+dc make client c1 c2 c3
+dc c1 connect -l s1
+dc c2 connect -l s1
+dc c3 connect -l s1
+dc make client c4 c5 c6
+dc c4 connect -l s2
+dc c5 connect -l s2
+dc c6 connect -l s2
+dc make client c7 c8 c9
+dc c7 connect -l s3
+dc c8 connect -l s3
+dc c9 connect -l s3
+
+dc c1	keys add  	   "c2" "c3" "c4" "c5" "c6" "c7" "c8" "c9"
+dc c2	keys add  "c1" 		"c3" "c4" "c5" "c6" "c7" "c8" "c9"
+dc c3	keys add  "c1" "c2" 	 "c4" "c5" "c6" "c7" "c8" "c9"
+dc c4	keys add  "c1" "c2" "c3" 	  "c5" "c6" "c7" "c8" "c9"
+dc c5	keys add  "c1" "c2" "c3" "c4" 	   "c6" "c7" "c8" "c9"
+dc c6	keys add  "c1" "c2" "c3" "c4" "c5" 	    "c7" "c8" "c9"
+dc c7	keys add  "c1" "c2" "c3" "c4" "c5" "c6" 	 "c8" "c9"
+dc c8	keys add  "c1" "c2" "c3" "c4" "c5" "c6" "c7" 	  "c9"
+dc c9	keys add  "c1" "c2" "c3" "c4" "c5" "c6" "c7" "c8" 	  
+
+dc c1 state active
+dc c2 state active
+dc c3 state active
+dc c4 state active
+dc c5 state active
+dc c6 state active
+dc c7 state active
+dc c8 state active
+dc c9 state active
 echo "done"

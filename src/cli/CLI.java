@@ -43,7 +43,15 @@ public class CLI {
 		this.innerController = controller;
 		this.controller = new CLIController();
 		try {
-			this.controller.handle(new ArgSet(args));
+			if(args.length > 0) {
+				String[] scriptArgs = new String[args.length + 1];
+				scriptArgs[0] = "run";
+				for(int i = 0; i < args.length; i++) {
+					scriptArgs[i+1] = args[i];
+				}
+				ArgSet scripts = new ArgSet(scriptArgs);
+				this.controller.handle(scripts);
+			}
 			readLoop();
 			System.exit(0);
 		} catch (IOException e) {
@@ -60,7 +68,7 @@ public class CLI {
 	private void readLoop() throws IOException {
 		String s;
 		do {
-			System.out.print("[DCnet] ");
+			System.out.print("[DCnet] $ ");
 			s = br.readLine();
 			if(s == null) return;
 			controller.handle(new ArgSet(s));
@@ -120,9 +128,7 @@ public class CLI {
 			Action scriptAction = new Action() {
 				@Override
 				public void execute(ArgSet args) {
-					if(!args.hasArg()) {
-						System.out.println("[CommandLineInterface] Please provide a relative path to the script that you want to run");
-					} else {
+					while(args.hasArg()) {
 						String path = args.pop();
 						try {
 							File f = new File(path);
@@ -140,6 +146,7 @@ public class CLI {
 						} catch(IOException e) {
 							System.out.println("[CommandLineInterface] An error occurred while reading from file " + path);
 							e.printStackTrace();
+							return;
 						}
 					}
 

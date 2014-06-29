@@ -1,0 +1,37 @@
+# A script that sets up clients that connect to a pre-defined server
+echo "setting up clients"
+dc make client c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 c16
+echo "adding keys"
+dc c1	keys add  	   "c2" "c3" "c4" "c5" "c6" "c7" "c8" "c9" "c10" "c11" "c12" "c13" "c14" "c15" "c16"
+dc c2	keys add  "c1" 		"c3" "c4" "c5" "c6" "c7" "c8" "c9" "c10" "c11" "c12" "c13" "c14" "c15" "c16"
+dc c3	keys add  "c1" "c2" 	 "c4" "c5" "c6" "c7" "c8" "c9" "c10" "c11" "c12" "c13" "c14" "c15" "c16"
+dc c4	keys add  "c1" "c2" "c3" 	  "c5" "c6" "c7" "c8" "c9" "c10" "c11" "c12" "c13" "c14" "c15" "c16"
+dc c5	keys add  "c1" "c2" "c3" "c4" 	   "c6" "c7" "c8" "c9" "c10" "c11" "c12" "c13" "c14" "c15" "c16"
+dc c6	keys add  "c1" "c2" "c3" "c4" "c5" 	    "c7" "c8" "c9" "c10" "c11" "c12" "c13" "c14" "c15" "c16"
+dc c7	keys add  "c1" "c2" "c3" "c4" "c5" "c6" 	 "c8" "c9" "c10" "c11" "c12" "c13" "c14" "c15" "c16"
+dc c8	keys add  "c1" "c2" "c3" "c4" "c5" "c6" "c7" 	  "c9" "c10" "c11" "c12" "c13" "c14" "c15" "c16"
+dc c9	keys add  "c1" "c2" "c3" "c4" "c5" "c6" "c7" "c8" 	   "c10" "c11" "c12" "c13" "c14" "c15" "c16"
+dc c10	keys add  "c1" "c2" "c3" "c4" "c5" "c6" "c7" "c8" "c9" 		 "c11" "c12" "c13" "c14" "c15" "c16"
+dc c11	keys add  "c1" "c2" "c3" "c4" "c5" "c6" "c7" "c8" "c9" "c10" 	   "c12" "c13" "c14" "c15" "c16"
+dc c12	keys add  "c1" "c2" "c3" "c4" "c5" "c6" "c7" "c8" "c9" "c10" "c11" 	     "c13" "c14" "c15" "c16"
+dc c13	keys add  "c1" "c2" "c3" "c4" "c5" "c6" "c7" "c8" "c9" "c10" "c11" "c12" 	   "c14" "c15" "c16"
+dc c14	keys add  "c1" "c2" "c3" "c4" "c5" "c6" "c7" "c8" "c9" "c10" "c11" "c12" "c13" 	     "c15" "c16"
+dc c15	keys add  "c1" "c2" "c3" "c4" "c5" "c6" "c7" "c8" "c9" "c10" "c11" "c12" "c13" "c14" 	   "c16"
+dc c16	keys add  "c1" "c2" "c3" "c4" "c5" "c6" "c7" "c8" "c9" "c10" "c11" "c12" "c13" "c14" "c15"
+echo "connectiong to <insert address>"
+dc c1 connect <insert address>
+dc c2 connect <insert address>
+dc c3 connect <insert address>
+dc c4 connect <insert address>
+dc c5 connect <insert address>
+dc c6 connect <insert address>
+dc c7 connect <insert address>
+dc c8 connect <insert address>
+dc c9 connect <insert address>
+dc c10 connect <insert address>
+dc c11 connect <insert address>
+dc c12 connect <insert address>
+dc c13 connect <insert address>
+dc c14 connect <insert address>
+dc c15 connect <insert address>
+dc c16 connect <insert address>

@@ -12,7 +12,7 @@ public class DCPackage {
 	// The number of bytes that make up the header of the package
 	public static final int HEADER_SIZE = 1;
 	// The number of bits used to represent the round number
-	public static final int NUMBER_SIZE = 5;
+	public static final int NUMBER_SIZE = 4;
 	// The size of the payload, in bytes
 	// The payload also includes the scheduling block
 	public static final int PAYLOAD_SIZE = PACKAGE_SIZE - HEADER_SIZE;

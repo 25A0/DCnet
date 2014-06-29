@@ -6,7 +6,7 @@ import dc.scheduling.Scheduler;
 
 public class DCConfig {
 	
-	public static final String VERSION = "0.1";
+	public static final String VERSION = "0.3 (Bachelor's thesis release)";
 	
 	// The minimum number of keys that have to be shared with other members of the network before communcation starts.
 	// So, a value of 2 means that a station has to share keys with to 2 other stations, leading to networks
@@ -29,7 +29,7 @@ public class DCConfig {
 		FINGERPRINT(){
 			@Override
 			public Scheduler getScheduler() {
-				return new FingerprintScheduler(32);
+				return new FingerprintScheduler(16);
 			}
 		};
 

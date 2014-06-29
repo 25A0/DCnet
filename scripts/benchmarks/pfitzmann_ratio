@@ -1,7 +1,7 @@
 echo "PFITZMANN'S ALGORITHM"
 echo "Benchmarking different ratios between number of slots and clients"
-scheduling pfitzmann 2 1.0
-scheduling pfitzmann 4 1.0
-scheduling pfitzmann 8 1.0
-scheduling pfitzmann 16 1.0
-scheduling pfitzmann 32 1.0
+scheduling pfitzmann 2
+scheduling pfitzmann 4
+scheduling pfitzmann 8
+scheduling pfitzmann 16
+scheduling pfitzmann 32
