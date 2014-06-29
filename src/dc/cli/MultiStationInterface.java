@@ -415,6 +415,7 @@ public class MultiStationInterface extends CLC {
 									// s2.getKeyHandler().addKey(station.getAlias(), key);
 								}
 							} else {
+								Debugger.println("keys", "[DCStation " + station.getAlias() + "] Adding key for " + s2);
 								station.getKeyHandler().addKey(s2);
 								// s2.getKeyHandler().addKey(station.getAlias());
 							}

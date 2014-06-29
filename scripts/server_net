@@ -1,4 +1,4 @@
 # A script to start a server that can be accessed by remote clients
 echo "Setting up server on port 4223"
-station make server s1 4223
+dc make server s1 4223
 echo "done"

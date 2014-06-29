@@ -1,0 +1,34 @@
+echo "causing all clients to send ~48kb of data"
+debug track add throughput
+station c1 send -f minecraft.png
+station c2 send -f minecraft.png 
+station c3 send -f minecraft.png 
+station c4 send -f minecraft.png 
+station c5 send -f minecraft.png 
+station c6 send -f minecraft.png 
+station c7 send -f minecraft.png 
+station c8 send -f minecraft.png 
+station c9 send -f minecraft.png 
+station c10 send -f minecraft.png 
+station c11 send -f minecraft.png 
+station c12 send -f minecraft.png 
+station c13 send -f minecraft.png 
+station c14 send -f minecraft.png 
+station c15 send -f minecraft.png 
+station c16 send -f minecraft.png 
+station c17 send -f minecraft.png 
+station c18 send -f minecraft.png 
+station c19 send -f minecraft.png 
+station c20 send -f minecraft.png 
+station c21 send -f minecraft.png 
+station c22 send -f minecraft.png 
+station c23 send -f minecraft.png 
+station c24 send -f minecraft.png 
+station c25 send -f minecraft.png 
+station c26 send -f minecraft.png 
+station c27 send -f minecraft.png 
+station c28 send -f minecraft.png 
+station c29 send -f minecraft.png 
+station c30 send -f minecraft.png 
+station c31 send -f minecraft.png 
+station c32 send -f minecraft.png 

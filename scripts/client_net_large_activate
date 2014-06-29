@@ -1,0 +1,17 @@
+echo "setting clients to state active"
+dc c1 state active
+dc c2 state active
+dc c3 state active
+dc c4 state active
+dc c5 state active
+dc c6 state active
+dc c7 state active
+dc c8 state active
+dc c9 state active
+dc c10 state active
+dc c11 state active
+dc c12 state active
+dc c13 state active
+dc c14 state active
+dc c15 state active
+dc c16 state active
