@@ -11,7 +11,7 @@ public class FingerprintScheduler implements Scheduler {
 	// The current fingerprint that is used to identify the slot that we reserved
 	private int fingerprint;
 	// The number of bytes that are used in the schedule for each slot
-	private final int bytesPerSlot = 1;
+	private final int bitsPerSlot = 2;
 	// The slot that we desire to reserve
 	private int desiredSlot;
 	// The slot that we <b> successfully </b> reserved
@@ -93,12 +93,12 @@ public class FingerprintScheduler implements Scheduler {
 
 	@Override
 	public int getScheduleSize() {
-		return numSlots * bytesPerSlot;
+		return (numSlots * bitsPerSlot) / 8;
 	}
 
 	@Override
 	public byte[] getSchedule() {
-		byte[] schedule = new byte[numSlots * bytesPerSlot];
+		byte[] schedule = new byte[getScheduleSize()];
 		if(desiredSlot != -1) {
 			setSlot(schedule, desiredSlot, fingerprint);
 		}
@@ -114,7 +114,7 @@ public class FingerprintScheduler implements Scheduler {
 	 * Choses a new, randomly generated fingerprint
 	 */
 	private void refreshFingerprint() {
-		fingerprint = random.nextInt(1 << (bytesPerSlot * 8));
+		fingerprint = random.nextInt(1 << (bitsPerSlot));
 	}
 
 	/**
@@ -138,15 +138,15 @@ public class FingerprintScheduler implements Scheduler {
 	 * @return          The value in the given slot.
 	 */
 	private int extractSlot(byte[] schedule, int slot) {
-		int start = slot * bytesPerSlot;
-		int value = 0;
-		for(int i = 0; i < bytesPerSlot; i++) {
-			// Shift value over to make room for the next byte
-			// Initially (value == 0), this operation has no effect.
-			value <<= 8;
-			value += (int) schedule[start + i] & 0xff;
-		}
-		return value;
+		// since 8 is divisible by bitsPerSlot, we know that
+		// one slot will never span more than one byte.
+
+		// relevant byte:
+		byte b = schedule[(slot * bitsPerSlot) / 8];
+		int startBit = (slot * bitsPerSlot) % 8;
+		b >>= startBit;
+		b &= (1 << bitsPerSlot) - 1;
+		return (int) b;
 	}
 
 	/**
@@ -156,12 +156,8 @@ public class FingerprintScheduler implements Scheduler {
 	 * @param value    The value to be stored.
 	 */
 	private void setSlot(byte[] schedule, int slot, int value) {
-		int start = slot * bytesPerSlot;
-		for(int i = 0; i < bytesPerSlot; i++) {
-			schedule[start + i] = (byte) (value % 256);
-			// Shift value over to expose the next byte
-			value >>= 8;
-		}
+		int startBit = (slot * bitsPerSlot) % 8;
+		schedule[slot] |= (byte) value << startBit;
 	}
 
 	/**
