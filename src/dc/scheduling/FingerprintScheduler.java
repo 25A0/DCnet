@@ -113,7 +113,7 @@ public class FingerprintScheduler implements Scheduler {
 	 * Choses a new, randomly generated fingerprint
 	 */
 	private void refreshFingerprint() {
-		fingerprint = (byte) random.nextInt(1 << (bitsPerSlot));
+		fingerprint = (byte) (random.nextInt(1 << (bitsPerSlot) - 1) + 1);
 	}
 
 	/**
