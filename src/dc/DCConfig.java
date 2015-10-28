@@ -1,6 +1,6 @@
 package dc;
 
-import dc.scheduling.FingerprintScheduler;
+import dc.scheduling.FootprintScheduler;
 import dc.scheduling.PrimitiveScheduler;
 import dc.scheduling.Scheduler;
 
@@ -17,7 +17,7 @@ public class DCConfig {
 
 	public static final int ALIAS_LENGTH = 8;
 
-	public static final SchedulingMethod schedulingMethod = SchedulingMethod.FINGERPRINT;
+	public static final SchedulingMethod schedulingMethod = SchedulingMethod.FOOTPRINT;
 
 	public enum SchedulingMethod {
 		PRIMITIVE(){
@@ -26,10 +26,10 @@ public class DCConfig {
 				return new PrimitiveScheduler();
 			}
 		},
-		FINGERPRINT(){
+		FOOTPRINT(){
 			@Override
 			public Scheduler getScheduler() {
-				return new FingerprintScheduler(16);
+				return new FootprintScheduler(16);
 			}
 		};
 
