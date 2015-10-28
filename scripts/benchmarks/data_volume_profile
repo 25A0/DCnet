@@ -1,5 +1,0 @@
-echo "DATA VOLUME PROFILE"
-echo "Comparing the performance of all three scheduling algorithms"
-scheduling herbivore 
-scheduling pfitzmann 32
-scheduling fingerprint 16 8
