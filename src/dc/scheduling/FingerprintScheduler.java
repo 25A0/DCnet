@@ -17,7 +17,7 @@ public class FingerprintScheduler implements Scheduler {
 	// The slot that we <b> successfully </b> reserved
 	private int chosenSlot;
 	// The number of slots in the schedule. This equals the size of the scheduling phase.
-	private final int numSlots;
+	private final int numSlots = 32;
 	
 	// The likelihood that we withdraw our reservation attempt if we encounter a collision
 	// default is 0.5
@@ -30,8 +30,7 @@ public class FingerprintScheduler implements Scheduler {
 	 * 
 	 * @param  numSlots   The number of slots in a schedule. This influences the size of the scheduling block as well as the duration of a scheduling phase.
 	 */
-	public FingerprintScheduler(int numSlots) {
-		this.numSlots = numSlots;
+	public FingerprintScheduler() {
 		desiredSlot = (int) (Math.random() * (double) numSlots);
 		Debugger.println("scheduling", "[FingerprintScheduler] Attempting to reserve slot \t" + desiredSlot);
 		chosenSlot = -1;

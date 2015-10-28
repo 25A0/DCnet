@@ -29,7 +29,7 @@ public class DCConfig {
 		FINGERPRINT(){
 			@Override
 			public Scheduler getScheduler() {
-				return new FingerprintScheduler(16);
+				return new FingerprintScheduler();
 			}
 		};
 
