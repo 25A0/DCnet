@@ -9,7 +9,7 @@ import dc.DCPackage;
 
 public class FingerprintScheduler implements Scheduler {
 	// The current fingerprint that is used to identify the slot that we reserved
-	private int fingerprint;
+	private byte fingerprint;
 	// The number of bytes that are used in the schedule for each slot
 	private final int bitsPerSlot = 2;
 	// The slot that we desire to reserve
@@ -113,7 +113,7 @@ public class FingerprintScheduler implements Scheduler {
 	 * Choses a new, randomly generated fingerprint
 	 */
 	private void refreshFingerprint() {
-		fingerprint = random.nextInt(1 << (bitsPerSlot));
+		fingerprint = (byte) random.nextInt(1 << (bitsPerSlot));
 	}
 
 	/**
@@ -154,9 +154,9 @@ public class FingerprintScheduler implements Scheduler {
 	 * @param slot     The index of the slot in which the value will be stored.
 	 * @param value    The value to be stored.
 	 */
-	private void setSlot(byte[] schedule, int slot, int value) {
+	private void setSlot(byte[] schedule, int slot, byte value) {
 		int startBit = (slot * bitsPerSlot) % 8;
-		schedule[slot] |= (byte) value << startBit;
+		schedule[slot] |= value << startBit;
 	}
 
 	/**
