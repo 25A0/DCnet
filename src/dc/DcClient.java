@@ -31,6 +31,8 @@ public class DcClient extends DCStation{
 	private int nextRound;
 	// The index of the next round that is scheduled for us to send something
 	private int nextScheduledRound;
+	// The index of the last round in which we sent something
+	private int lastScheduledRound;
 	
 	// The time that this client waits between sending messages
 	// This is a minimal wait time, the client will wait longer if the current round
@@ -56,6 +58,7 @@ public class DcClient extends DCStation{
 		nextRound = -1;
 		// -1 is the sentinel value for 'no round is scheduled for us'
 		nextScheduledRound = -1;
+		lastScheduledRound = -1;
 		
 		
 	}
@@ -67,6 +70,7 @@ public class DcClient extends DCStation{
 	public void setScheduler(Scheduler s) {
 		this.scheduler = s;
 		nextScheduledRound = -1;
+		lastScheduledRound = -1;
 	}
 
 	public void send(String s) throws IOException {
@@ -116,7 +120,8 @@ public class DcClient extends DCStation{
 		if(inputPayload != null) {
 			// We compare 'message' rather than 'inputPayload' since
 			// the pending message includes padding.
-			if(mb.hasPendingMessage() && number == nextScheduledRound) {
+			if(mb.hasPendingMessage() && number == lastScheduledRound) {
+				lastScheduledRound = -1;
 				if(!mb.compareMessage(message.getMessage(scheduler.getScheduleSize()))) {
 					// TODO: report collision to statistics tracker.
 					Debugger.println("collision", "[DcClient "+alias+"] Collision detected");
@@ -129,7 +134,11 @@ public class DcClient extends DCStation{
 		}
 		boolean waiting = mb.hasPendingMessage() || !mb.isEmpty();
 		if(isActive && scheduler.addPackage(message, waiting)) {
-			nextScheduledRound = scheduler.getNextRound();
+			if(nextScheduledRound == -1) {
+				// we only want to fetch the next round after we used
+				// the last round to send a message.
+				nextScheduledRound = scheduler.getNextRound();
+			}
 			Debugger.println("scheduling", "[DcClient "+alias+"] successfully scheduled slot: " + nextScheduledRound);	
 		}
 		nextRound = ++number % message.getNumberRange();
@@ -192,8 +201,13 @@ public class DcClient extends DCStation{
 				 */
 				// System.out.println(alias + ": Are we allowed to send? " + (kh.approved(net.getStations())? " Yes":"No"));
 				if(kh.approved(net.getStations()) && nextScheduledRound == nextRound) {
-					Debugger.println("messages", "[DcClient " + alias + "] Sending...");
+					Debugger.println("messages", "[DcClient " + alias + "] Sending in round " + nextRound + "...");
 					message = mb.getMessage();
+					// remember that we used up this scheduled round.
+					assert lastScheduledRound == -1;
+					lastScheduledRound = nextScheduledRound;
+					// flag that we used up this round
+					nextScheduledRound = -1;
 				} else {
 					message = new byte[DCPackage.PAYLOAD_SIZE - scheduler.getScheduleSize()];
 				}
